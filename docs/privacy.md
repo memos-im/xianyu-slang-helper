@@ -34,7 +34,7 @@ permalink: /privacy/
 
 ## 词典是怎么工作的
 
-插件随安装包自带一份静态加密词典（`data/dictionary.enc.json`）。AES-256-GCM 加密只用于**防爬虫静态抓取**——解密 key 在 `data/crypto.js` 是明文常量，解密后的内容只在内存中用于查找。完整明文词典也公开在 [GitHub 仓库](https://github.com/sudoo-dev/xianyu-slang-helper/blob/main/tools/dictionary.source.json) 的 `tools/dictionary.source.json`。
+插件随安装包自带一份静态加密词典（`data/dictionary.enc.json`）。AES-256-GCM 加密只用于**防爬虫静态抓取**——解密 key 在 `data/crypto.js` 是明文常量，解密后的内容只在内存中用于查找。完整明文词典也公开在 [GitHub 仓库](https://github.com/memos-im/xianyu-slang-helper/blob/main/tools/dictionary.source.json) 的 `tools/dictionary.source.json`。
 
 ## 关于内置 AI（可选功能）
 
@@ -70,8 +70,8 @@ permalink: /privacy/
 
 ## 反馈与联系
 
-- GitHub Issues：[https://github.com/sudoo-dev/xianyu-slang-helper/issues](https://github.com/sudoo-dev/xianyu-slang-helper/issues)
-- 邮箱：[help@sudoo.dev](mailto:help@sudoo.dev)
+- GitHub Issues：[https://github.com/memos-im/xianyu-slang-helper/issues](https://github.com/memos-im/xianyu-slang-helper/issues)
+- 邮箱：[help@memos.im](mailto:help@memos.im)
 - 如需删除任何与你相关的信息，请通过上述渠道联系（**目前不收集用户数据，所以无信息可删**）
 
 ---
@@ -92,4 +92,4 @@ Locally stored items (in `chrome.storage.local`, never synchronized to any serve
 
 The extension activates only on `*.goofish.com`, `*.xianyu.com`, and `2.taobao.com`. It performs zero actions on any other site.
 
-Contact: [help@sudoo.dev](mailto:help@sudoo.dev) · [GitHub Issues](https://github.com/sudoo-dev/xianyu-slang-helper/issues)
+Contact: [help@memos.im](mailto:help@memos.im) · [GitHub Issues](https://github.com/memos-im/xianyu-slang-helper/issues)

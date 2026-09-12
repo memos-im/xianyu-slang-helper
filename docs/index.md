@@ -18,12 +18,12 @@ image: /screenshots/03-detail-panel.png
   "operatingSystem": "Chrome, Edge, Brave",
   "description": "Chrome 浏览器扩展，帮你搜得到、看得懂闲鱼上卖家用的黑话/暗语。21 个分类、243 词条、本地运行、零数据收集。",
   "softwareVersion": "1.8.0",
-  "url": "https://sudoo-dev.github.io/xianyu-slang-helper/",
+  "url": "https://xianyu.memos.im/",
   "downloadUrl": "https://chromewebstore.google.com/detail/%E9%97%B2%E9%B1%BC%E8%AF%8D%E5%85%B8/kblfpfpjgbhakbjefandponpkflfjmei",
   "author": {
     "@type": "Organization",
-    "name": "sudoo-dev",
-    "url": "https://github.com/sudoo-dev"
+    "name": "memos-im",
+    "url": "https://github.com/memos-im"
   },
   "offers": {
     "@type": "Offer",
@@ -72,9 +72,9 @@ image: /screenshots/03-detail-panel.png
 
 > Chrome 浏览器扩展 · 解决闲鱼上**黑话/暗语**搜不到、看不懂的问题 · 完全本地运行 · 零数据收集
 
-[![Version](https://img.shields.io/badge/version-1.8.0-orange)](https://github.com/sudoo-dev/xianyu-slang-helper/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/sudoo-dev/xianyu-slang-helper/blob/main/LICENSE)
-[![Stars](https://img.shields.io/github/stars/sudoo-dev/xianyu-slang-helper?style=social)](https://github.com/sudoo-dev/xianyu-slang-helper)
+[![Version](https://img.shields.io/badge/version-1.8.0-orange)](https://github.com/memos-im/xianyu-slang-helper/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/memos-im/xianyu-slang-helper/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/memos-im/xianyu-slang-helper?style=social)](https://github.com/memos-im/xianyu-slang-helper)
 
 [![安装闲鱼词典](https://img.shields.io/badge/Chrome%20Web%20Store-%E5%AE%89%E8%A3%85%E9%97%B2%E9%B1%BC%E8%AF%8D%E5%85%B8-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/%E9%97%B2%E9%B1%BC%E8%AF%8D%E5%85%B8/kblfpfpjgbhakbjefandponpkflfjmei)
 
@@ -204,7 +204,7 @@ image: /screenshots/03-detail-panel.png
 
 ### 方式 2：手动加载（开发者模式）
 
-1. 到 [Releases 页面](https://github.com/sudoo-dev/xianyu-slang-helper/releases) 下载最新 `.zip`
+1. 到 [Releases 页面](https://github.com/memos-im/xianyu-slang-helper/releases) 下载最新 `.zip`
 2. 解压到任意文件夹
 3. Chrome 地址栏访问 `chrome://extensions/`
 4. 右上角开启"**开发者模式**"
@@ -237,7 +237,7 @@ image: /screenshots/03-detail-panel.png
 
 两个办法：
 1. **本地添加**：在 popup 的"我的"标签自己加词条（永不上传）
-2. **贡献给社区**：在 [GitHub Issues](https://github.com/sudoo-dev/xianyu-slang-helper/issues) 提交，审核后会并入下个版本
+2. **贡献给社区**：在 [GitHub Issues](https://github.com/memos-im/xianyu-slang-helper/issues) 提交，审核后会并入下个版本
 
 ### 安全吗？会上传我的搜索记录吗？
 
@@ -280,13 +280,13 @@ image: /screenshots/03-detail-panel.png
 
 源代码、构建脚本、明文词典完全开源：
 
-[github.com/sudoo-dev/xianyu-slang-helper](https://github.com/sudoo-dev/xianyu-slang-helper)
+[github.com/memos-im/xianyu-slang-helper](https://github.com/memos-im/xianyu-slang-helper)
 
 License: MIT
 
 ## 反馈与贡献
 
-- 词典遗漏 / 误报 / Bug：[GitHub Issues](https://github.com/sudoo-dev/xianyu-slang-helper/issues)
-- 邮箱：[help@sudoo.dev](mailto:help@sudoo.dev)
+- 词典遗漏 / 误报 / Bug：[GitHub Issues](https://github.com/memos-im/xianyu-slang-helper/issues)
+- 邮箱：[help@memos.im](mailto:help@memos.im)
 
-欢迎 PR 补充新黑话词条！编辑 [tools/dictionary.source.json](https://github.com/sudoo-dev/xianyu-slang-helper/blob/main/tools/dictionary.source.json) 即可。
+欢迎 PR 补充新黑话词条！编辑 [tools/dictionary.source.json](https://github.com/memos-im/xianyu-slang-helper/blob/main/tools/dictionary.source.json) 即可。

@@ -1,19 +1,19 @@
 title: 闲鱼词典 · 闲鱼黑话/暗语 Chrome 扩展
 description: 一秒读懂闲鱼卖家的黑话/暗语 · 搜索时自动建议、浏览时自动解读 · 完全本地运行 · 零数据收集
-url: "https://sudoo-dev.github.io"
-baseurl: "/xianyu-slang-helper"
+url: "https://xianyu.memos.im"
+baseurl: ""
 lang: zh-CN
 
 # SEO
 author:
-  name: sudoo-dev
-  email: help@sudoo.dev
+  name: memos-im
+  email: help@memos.im
 twitter:
   card: summary_large_image
 social:
   name: 闲鱼词典
   links:
-    - https://github.com/sudoo-dev/xianyu-slang-helper
+    - https://github.com/memos-im/xianyu-slang-helper
 
 # OG image (用一张能展现产品的截图)
 image: /screenshots/03-detail-panel.png

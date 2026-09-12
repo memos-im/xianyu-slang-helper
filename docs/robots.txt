@@ -4,4 +4,4 @@ Allow: /
 # 谷歌站点验证文件不需要被收录
 Disallow: /google90b12cb34158efcd.html
 
-Sitemap: https://sudoo-dev.github.io/xianyu-slang-helper/sitemap.xml
+Sitemap: https://xianyu.memos.im/sitemap.xml

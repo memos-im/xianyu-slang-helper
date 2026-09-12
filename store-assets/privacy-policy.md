@@ -49,8 +49,8 @@ If we ever change how data is handled, this page will be updated with a new "Las
 
 ## Contact
 For questions, bug reports, or removal requests:
-- GitHub Issues: https://github.com/sudoo-dev/xianyu-slang-helper/issues
-- Email: help@sudoo.dev
+- GitHub Issues: https://github.com/memos-im/xianyu-slang-helper/issues
+- Email: help@memos.im
 
 ---
 
@@ -83,5 +83,5 @@ For questions, bug reports, or removal requests:
 仅在 `*.goofish.com / *.xianyu.com / 2.taobao.com` 生效，其它网站完全不工作。
 
 ## 反馈
-- GitHub Issues：https://github.com/sudoo-dev/xianyu-slang-helper/issues
-- 邮箱：help@sudoo.dev
+- GitHub Issues：https://github.com/memos-im/xianyu-slang-helper/issues
+- 邮箱：help@memos.im

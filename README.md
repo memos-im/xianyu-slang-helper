@@ -23,7 +23,7 @@ Chrome / Edge 浏览器扩展，帮你解决闲鱼上的"暗语搜不到、看�
 
 ### 方式 2：手动加载（开发者模式）
 
-1. 到 [Releases 页面](https://github.com/sudoo-dev/xianyu-slang-helper/releases) 下载最新 `.zip` 并解压（或克隆本仓库）
+1. 到 [Releases 页面](https://github.com/memos-im/xianyu-slang-helper/releases) 下载最新 `.zip` 并解压（或克隆本仓库）
 2. 打开 `chrome://extensions/`，右上角开启"开发者模式"
 3. "加载已解压的扩展程序" → 选 `xianyu-slang-helper` 文件夹
 4. 访问 [goofish.com](https://www.goofish.com/) 即可生效

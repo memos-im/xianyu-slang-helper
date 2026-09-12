@@ -81,10 +81,10 @@ No `<all_urls>`. No remote-host permissions. No `webRequest`, `tabs`, `cookies`,
 ## Source code
 
 This extension is open source. Full source, including the plaintext dictionary, is at:
-**https://github.com/sudoo-dev/xianyu-slang-helper**
+**https://github.com/memos-im/xianyu-slang-helper**
 
 Tagged release `v1.6.0` matches the submitted package byte-for-byte (except for the encrypted dictionary which is regenerated at build time with a fresh random IV).
 
 ## Contact
 
-Questions during review: **help@sudoo.dev**
+Questions during review: **help@memos.im**

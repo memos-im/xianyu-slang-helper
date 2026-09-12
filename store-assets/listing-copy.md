@@ -68,12 +68,12 @@ Decode coded slang on Xianyu/Goofish. Suggests jargon for search; highlights and
 · 仅本地存储自定义词典和开关偏好
 · 只在闲鱼三个域名下工作
 
-详见隐私政策：https://sudoo-dev.github.io/xianyu-slang-helper/privacy
+详见隐私政策：https://xianyu.memos.im/privacy
 
 ═════════ 开源 ═════════
 
 源代码与词典 plaintext 源完全开源：
-https://github.com/sudoo-dev/xianyu-slang-helper
+https://github.com/memos-im/xianyu-slang-helper
 
 ═════════ 反馈 ═════════
 
@@ -113,11 +113,11 @@ When the dictionary doesn't have a match, click the AI button to invoke Chrome's
 · Only your custom entries and preferences stored locally
 · Activates only on goofish.com / xianyu.com / 2.taobao.com
 
-Privacy policy: https://sudoo-dev.github.io/xianyu-slang-helper/privacy
+Privacy policy: https://xianyu.memos.im/privacy
 
 ═════════ Open source ═════════
 
-Source code and plaintext dictionary: https://github.com/sudoo-dev/xianyu-slang-helper
+Source code and plaintext dictionary: https://github.com/memos-im/xianyu-slang-helper
 ```
 
 ---
