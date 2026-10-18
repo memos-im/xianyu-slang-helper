@@ -34,7 +34,7 @@ permalink: /privacy/
 
 ## 词典是怎么工作的
 
-插件随安装包自带一份静态加密词典（`data/dictionary.enc.json`）。AES-256-GCM 加密只用于**防爬虫静态抓取**——解密 key 在 `data/crypto.js` 是明文常量，解密后的内容只在内存中用于查找。完整明文词典也公开在 [GitHub 仓库](https://github.com/memos-im/xianyu-slang-helper/blob/main/tools/dictionary.source.json) 的 `tools/dictionary.source.json`。
+插件随安装包自带一份静态加密词典（`dictionary.enc.json`）。AES-256-GCM 加密只用于**防爬虫静态抓取**——解密 key 在 `src/dict/crypto.ts` 是明文常量，解密后的内容只在内存中用于查找。完整明文词典也公开在 [GitHub 仓库](https://github.com/memos-im/xianyu-slang-helper/blob/main/data/dictionary.source.json) 的 `data/dictionary.source.json`。
 
 ## 关于内置 AI（可选功能）
 

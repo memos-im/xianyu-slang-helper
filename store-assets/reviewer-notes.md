@@ -5,25 +5,25 @@ This document explains design choices that may catch a reviewer's attention. Ple
 ## What this extension does (one sentence)
 A slang-dictionary helper that highlights and decodes the coded jargon Chinese sellers commonly use on the Xianyu (Goofish) second-hand marketplace, and suggests those slang variants in the platform's search input.
 
-## About the encrypted dictionary file (`data/dictionary.enc.json`)
+## About the encrypted dictionary file (`dictionary.enc.json`, at the package root)
 
 The bundled dictionary is encrypted with **AES-256-GCM**. Please note:
 
 1. **This is data, not code.** The encrypted blob is a static word list (Chinese slang ↔ plain Chinese). It is never executed; it is only used as a lookup table.
 
-2. **The key is in plain sight.** Look at `data/crypto.js` — the very first non-comment line:
-   ```js
-   const PASSPHRASE = "xy-slang|@goofish|_v2_helper";
+2. **The key is in plain sight.** Look at `src/dict/constants.ts` — the very first constant:
+   ```ts
+   export const PASSPHRASE = "xy-slang|@goofish|_v2_helper";
    ```
-   We deliberately did **not** obfuscate the key. The encryption is only to deter casual web scrapers from `curl + grep`-ing the dictionary file. Anyone (including you) can read `crypto.js`, derive the AES key with the same `PBKDF2-SHA256, 100,000 rounds, salt 9f3a82b1e7c4d605a8f29b1c4d7e0a36` parameters, and decrypt the file.
+   We deliberately did **not** obfuscate the key. The encryption is only to deter casual web scrapers from `curl + grep`-ing the dictionary file. Anyone (including you) can read `src/dict/crypto.ts`, derive the AES key with the same `PBKDF2-SHA256, 100,000 rounds, salt 9f3a82b1e7c4d605a8f29b1c4d7e0a36` parameters, and decrypt the file.
 
-3. **The plaintext is publicly available** in the project's public source repository at `tools/dictionary.source.json`. If you want to inspect the dictionary contents without decrypting, that file is the same source. (We exclude it from the published package only to keep the package small.)
+3. **The plaintext is publicly available** in the project's public source repository at `data/dictionary.source.json`. If you want to inspect the dictionary contents without decrypting, that file is the same source. (We exclude it from the published package only to keep the package small.)
 
 4. **No remote loading.** The dictionary file is bundled in the extension package. There is no fetching, no auto-update via remote URL, no dynamic code execution. All updates ship as new versions of the extension itself, reviewed by Chrome Web Store.
 
 ## Verifying the decryption (optional)
 
-To independently decrypt `data/dictionary.enc.json` outside the browser, run this Node.js script:
+To independently decrypt `dictionary.enc.json` (the encrypted dictionary sits at the package root) outside the browser, run this Node.js script:
 
 ```js
 import { readFileSync } from "node:fs";
@@ -33,7 +33,7 @@ const PASSPHRASE = "xy-slang|@goofish|_v2_helper";
 const SALT = Buffer.from("9f3a82b1e7c4d605a8f29b1c4d7e0a36", "hex");
 const key = pbkdf2Sync(PASSPHRASE, SALT, 100000, 32, "sha256");
 
-const enc = JSON.parse(readFileSync("data/dictionary.enc.json", "utf8"));
+const enc = JSON.parse(readFileSync("dictionary.enc.json", "utf8"));
 const iv = Buffer.from(enc.iv, "base64");
 const combined = Buffer.from(enc.ct, "base64");
 const ct = combined.slice(0, combined.length - 16);
@@ -45,7 +45,9 @@ const plain = Buffer.concat([dec.update(ct), dec.final()]).toString("utf8");
 console.log(JSON.parse(plain));
 ```
 
-Output: a `{ categories: [...] }` JSON object with 15 categories of ~159 slang entries.
+Output: a `{ categories: [...] }` JSON object. The bundle's own `stats` field reports the current counts
+(21 categories / 250 entries / 896 slang variants at the time of writing) and its `checksum` is the
+first 16 hex chars of the SHA-256 of that payload.
 
 ## About Chrome Built-in AI (Prompt API)
 

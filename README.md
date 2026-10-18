@@ -56,69 +56,126 @@ Chrome / Edge 浏览器扩展，帮你解决闲鱼上的"暗语搜不到、看�
 
 ## 开发
 
-改词典**不需要任何 build 步骤**——直接编辑明文源文件，刷新插件即生效：
+技术栈：**WXT 0.21 + TypeScript + Bun**（无 UI 框架，纯 DOM）。`manifest.json` 由 WXT 生成，不在仓库里。
 
 ```bash
-$EDITOR tools/dictionary.source.json     # 改词条
-# chrome://extensions/ → 刷新插件
+bun install
+bun run dev          # 起 dev server + 构建到 dist/chrome-mv3-dev（改动自动重建）
+bun run build        # 构建 → dist/chrome-mv3
+bun run compile      # 类型检查（bun check）
+bun run lint         # oxlint
+bun run fmt          # oxfmt --write
+bun run verify       # 类型检查 + lint + 格式校验（发版 CI 的闸门）
 ```
 
-加载器有两条路径，选哪条由文件是否存在**自动**决定：
+### 装进 Chrome 调试
 
-| 模式 | `tools/dictionary.source.json` | 加载行为 |
-|------|------------------------------|---------|
-| 开发期 | 存在（明文） | 直接读明文 |
-| 发布期 | 不存在（打包脚本剔除） | 回落到 `data/dictionary.enc.json` |
+`bun run dev` 不会自己开浏览器（未装 `web-ext`）：它起 dev server 并打印
+`Load "dist/chrome-mv3-dev" as an unpacked extension manually`。手动装一次即可：
+
+1. `bun run dev`（保持这个终端开着）
+2. `chrome://extensions` → 开启右上角 **开发者模式** → **加载已解压的扩展程序**
+3. 选仓库下的 **`dist/chrome-mv3-dev`**（非隐藏目录，Finder 里直接可见）
+
+用你自己的 Chrome profile，goofish 的登录态还在。改代码后 dev server 自动重建；
+popup 走 Vite HMR，content script 改动 WXT 会自动重载（因此 dev manifest 会额外带上
+`tabs` / `scripting` 权限 —— 发布产物没有这两个，别被权限提示误导）。
+
+两个产物的差别只有词典：
+
+| 产物                  | 词典                             | 用途                                                |
+| --------------------- | -------------------------------- | --------------------------------------------------- |
+| `dist/chrome-mv3-dev` | `dictionary.source.json`（明文） | 日常调试，改 `data/dictionary.source.json` 立即生效 |
+| `dist/chrome-mv3`     | `dictionary.enc.json`（密文）    | 验证 AES-GCM 解密路径 / 上架前                      |
+
+> 想让它自动开浏览器：`bun add -d web-ext`。注意它默认每次开全新临时 profile（没有登录态）、
+> 且默认参数会**禁掉 Prompt API**（本扩展的 AI 兜底依赖它）；要调 AI 得配 `web-ext.config.ts`。
+
+**dev server 收不干净**：`wxt` 是子进程，直接关终端（或 `kill` 外层 `bun`）可能留下它在后台占着
+3000 端口、并继续写 `dist/chrome-mv3-dev`，下一个 `bun dev` 抢同一个目录就会报错。清理：
+
+```bash
+pkill -f "node_modules/.bin/wxt"   # 再跑 bun dev
+```
+
+> 顺带：`bun dev` 退出时打印 `error: script "dev" exited with code 143` 不是故障 —— 143 就是
+> SIGTERM（Ctrl+C 或超时），服务本来就不该自己退出。
+
+### 词典怎么走
+
+改词典**不需要手动加密**：直接编辑 `data/dictionary.source.json`，开发模式下 loader 读明文，
+改完刷新即生效。构建时由 `wxt.config.ts` 的 `build:publicAssets` hook 决定注入哪份：
+
+| 模式 | 注入产物根目录的文件             | 加载行为     |
+| ---- | -------------------------------- | ------------ |
+| 开发 | `dictionary.source.json`（明文） | 直接读明文   |
+| 发布 | `dictionary.enc.json`（密文）    | AES-GCM 解密 |
 
 > 发布包里的词典是加密的，目的只是让爬虫没法 `curl + grep` 直接扒走词条列表；
-> 解密 key 以明文常量放在 `data/crypto.js` 里，**没有做混淆**，缘由见该文件头部注释。
+> 口令以明文常量放在 `src/dict/constants.ts`，**没有做混淆**。缘由见 `src/dict/crypto.ts` 头部注释
+> 与 `store-assets/reviewer-notes.md`。
+> 运行时解密与构建期加密共用同一份 WebCrypto 实现，常量不可能两侧漂移。
 
 ### 发布
 
-```bash
-# 先把 manifest.json 和 tools/dictionary.source.json 的 version 改成同一个值
-node tools/package.mjs
-```
-
-脚本会：
-
-1. 加密 `tools/dictionary.source.json` → `data/dictionary.enc.json`
-2. 校验 manifest / source 版本对齐
-3. 拷贝运行时文件到 `dist/xianyu-slang-helper/`，**剔除整个 tools/ 目录**
-4. 安全检查：抽样 grep 关键词，确保 dist/ 无明文泄漏
-
-打 zip 时**必须在包目录内部打包**——`manifest.json` 要在 zip 根目录，外面多套一层目录商店会直接拒收：
+版本**只有一个来源：`package.json`**。改完词典后：
 
 ```bash
-cd dist/xianyu-slang-helper && zip -qr ../xianyu-slang-helper-v1.8.0.zip .
+# 1. 改 package.json 的 version
+# 2. 本地走一遍 CI 的构建链（构建 → 产物安全检查 → 打 zip）
+bun run release:build
 ```
 
-只想跑一次加密、不要 `dist/`：`node tools/encrypt-dict.mjs`。
+`verify:dist` 会断言产物里没有 `tools/`、没有明文词典、抽样关键词不泄漏；
+`wxt zip` 产出的 `dist/*-chrome.zip` 里 `manifest.json` 已在根目录，可直接上传商店。
 
 ### CI 自动发布
 
-推送 `v*` tag（如 `v1.8.0`）即触发 GitHub Actions：校验版本一致 → 打包 → 上传到 Chrome Web Store（默认草稿，到后台手动 Publish）。上面的手动打包步骤走 CI 就不用管。一次性凭据配置见 [.github/RELEASING.md](.github/RELEASING.md)。
+推送 `v*` tag（如 `v1.9.1`）即触发 GitHub Actions：校验 `tag == package.json.version` → 构建 → 上传到 Chrome Web Store（默认草稿，到后台手动 Publish）。一次性凭据配置见 [.github/RELEASING.md](.github/RELEASING.md)。
+
+### 词典定时同步
+
+`.github/workflows/sync-slang.yml` 每周一自动从两个开源源拉取暗语并入 `data/dictionary.source.json`，有改动时开一个 `chore/sync-slang` PR 供人工复核：
+
+- **awesome-chinese-secondhand-slang**（主源）— 人工维护的开源数据仓（~110 概念 / 4500+ 变体）：`bun run dict:sync [-- --apply]`
+- **search-sharp.com**（次源）— 众包站（尽力而为，CI 里可能被限流）：`bun run dict:sync:searchsharp [-- --apply]`
+
+两个脚本先抓取再经**政策分档 + 风险变体（单字/短缩写/日常词）+ 去重**过滤，默认只"暂存"到 `tools/*.staged.json` 并打印报告，加 `--apply` 才写入词典。
+
+政策分两档（`tools/lib/dict-shared.ts`）：**HARD**（色情/毒品/武器/赌博/盗号/涉未成年等违法题材）一律排除；**GREY**（高仿假货/黄牛代抢/引流养号/社保代缴/活体宠物等商店政策灰色题材）**默认写入**并单独报告——合并 PR 时请确认过审风险可接受，介意可用 `--deny-grey`。
+
+追加 `--ai-review` 可用 **TypeSafe System One 判别模型**（[Jev](https://docs.typesafe.ai)；自托管 DiffusionGemma 同 API）剔除上游的"模板化噪音"变体：每个候选变体问一个 `Noul`（是/否）问题，取概率 ≥ 阈值判为噪音，不生成文本、无解析、返回校准概率。环境变量 `TYPESAFE_API_KEY`（本地端点可空）/ `TYPESAFE_BASE_URL` / `TYPESAFE_MODEL` / 阈值 `AI_NOISE_THRESHOLD`（默认 0.5）。未配置 key 时自动降级跳过，不阻断同步。
+
+合并后跑 `bun run dict:audit` 审计误报。发版仍需人工 bump `package.json` 版本并打 tag。
 
 ### 文件结构
 
 ```
 xianyu-slang-helper/
-├── manifest.json                # MV3
-├── background.js                # Service worker (仅初始化设置)
-├── content.js                   # 内容脚本: 搜索气泡 + 暗语高亮
-├── content.css
-├── popup.html / popup.css / popup.js
+├── wxt.config.ts            # manifest 生成 + 词典注入 hook
+├── .oxlintrc.json / .oxfmtrc.json   # Oxc 的 lint / format 配置
+├── src/
+│   ├── entrypoints/
+│   │   ├── background.ts    # Service worker（仅初始化设置）
+│   │   ├── content/         # 内容脚本：搜索气泡 + 暗语高亮 + 详情浮层
+│   │   └── popup/           # popup：4 个 tab（index.html / main.ts / style.css）
+│   ├── dict/
+│   │   ├── constants.ts     # 加密常量（运行时与构建期共用）
+│   │   ├── crypto.ts        # AES-GCM 加解密
+│   │   ├── loader.ts        # 受控查询 API，闭包持有明文
+│   │   └── types.ts         # 数据模型
+├── public/icon/             # 图标（WXT publicDir = <root>/public）
 ├── data/
-│   ├── crypto.js                # 运行时 AES-GCM 解密
-│   ├── dict-loader.js           # 受控查询 API, 闭包持有明文
-│   └── dictionary.enc.json      # 加密词典 (build 产物, 发布时使用)
-├── tools/                       # 仅开发期, 打包时整目录剔除
-│   ├── dictionary.source.json   # 词典源 (人类可读, 维护者编辑此处)
-│   ├── encrypt-dict.mjs         # 单独加密脚本
-│   ├── package.mjs              # 发布打包脚本 (加密 + 拷贝 + 安全检查)
-│   └── fetch-searchsharp.mjs    # 从 search-sharp.com 同步众包暗语 (sync-searchsharp skill)
-├── dist/                        # 打包产物 (gitignored, 上传 Web Store 用)
-├── icons/
+│   ├── dictionary.source.json   # 词典明文源（人类可读，维护者编辑此处）
+│   └── dictionary.enc.json      # 加密产物（gitignored，构建时生成）
+├── tools/                   # Bun 运行的 TS 脚本（不进发布包）
+│   ├── lib/                 # 政策分档 / 风险变体 / System One 复核 / 路径
+│   ├── sync-awesome.ts      # 主源同步
+│   ├── sync-searchsharp.ts  # 次源同步
+│   ├── audit-dict.ts        # 误报与冲突审计
+│   ├── encrypt-dict.ts      # 单独生成 dictionary.enc.json
+│   └── verify-dist.ts       # 构建产物安全检查
+├── dist/                    # WXT 构建产物（gitignored）：chrome-mv3（发布）/ chrome-mv3-dev（调试）
 └── README.md
 ```
 

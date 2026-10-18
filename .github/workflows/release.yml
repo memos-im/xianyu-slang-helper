@@ -1,6 +1,6 @@
 # 发布到 Chrome Web Store
 #
-# 触发: 推送形如 v1.7.2 的 tag (默认上传为草稿, 不自动提交审核);
+# 触发: 推送形如 v1.9.0 的 tag (默认上传为草稿, 不自动提交审核);
 #       或手动 workflow_dispatch (可勾选 publish=true 直接提交审核)。
 # 一次性配置见 .github/RELEASING.md。
 #
@@ -29,22 +29,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 24
+          bun-version: latest
 
-      - name: 校验版本一致 (tag == manifest == source)
+      - name: 安装依赖
+        run: bun install --frozen-lockfile
+
+      - name: 类型检查 + lint + 格式校验
+        run: bun run verify
+
+      # 版本唯一来源是 package.json —— 不再有 manifest/source 双写, 只校验 tag 对齐。
+      - name: 校验版本一致 (tag == package.json)
         run: |
-          MANIFEST_VER=$(node -p "require('./manifest.json').version")
-          SOURCE_VER=$(node -p "require('./tools/dictionary.source.json').version")
-          echo "manifest=$MANIFEST_VER  source=$SOURCE_VER  ref=$GITHUB_REF_NAME"
-          if [ "$MANIFEST_VER" != "$SOURCE_VER" ]; then
-            echo "::error::manifest ($MANIFEST_VER) 与 source ($SOURCE_VER) 版本不一致"; exit 1
-          fi
+          PKG_VER=$(bun -e 'console.log(JSON.parse(await Bun.file("package.json").text()).version)')
+          echo "package.json=$PKG_VER  ref=$GITHUB_REF_NAME"
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             TAG_VER="${GITHUB_REF_NAME#v}"
-            if [ "$TAG_VER" != "$MANIFEST_VER" ]; then
-              echo "::error::tag ($TAG_VER) 与 manifest ($MANIFEST_VER) 不一致——先 bump 版本再打 tag"; exit 1
+            if [ "$TAG_VER" != "$PKG_VER" ]; then
+              echo "::error::tag ($TAG_VER) 与 package.json ($PKG_VER) 不一致——先 bump 版本再打 tag"; exit 1
             fi
           fi
 
@@ -91,15 +94,14 @@ jobs:
           fi
           exit 1
 
-      - name: 构建扩展包 (加密 + 安全检查)
-        run: node tools/package.mjs
+      - name: 构建 + 安全校验 + 打 zip
+        run: bun run release:build
 
-      - name: 打包 zip (manifest 必须在 zip 根目录)
+      # WXT 把产物放在 dist/, zip 里 manifest.json 已在根目录 (商店要求)。
+      - name: 核对产物
         run: |
-          cd dist/xianyu-slang-helper
-          zip -qr ../xianyu-slang-helper.zip .
-          cd ../..
-          echo "zip 内容顶层:"; unzip -l dist/xianyu-slang-helper.zip | head -15
+          ls -la dist
+          unzip -l dist/*-chrome.zip | head -20
 
       # 先存档再上传: 即使商店上传挂了, 也能从 run 页面下载这个 zip 手动传,
       # 不用为了拿包重跑一遍构建。
@@ -107,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: xianyu-slang-helper-${{ github.ref_name }}
-          path: dist/xianyu-slang-helper.zip
+          path: dist/*-chrome.zip
           retention-days: 30
 
       - name: 上传到 Chrome Web Store
@@ -121,15 +123,15 @@ jobs:
           # 无 command = upload+publish; "upload" = 仅上传草稿。creds 走环境变量。
           if [ "$DO_PUBLISH" = "true" ]; then
             echo "上传并提交审核 (publish)…"
-            npx -y chrome-webstore-upload-cli@3 --source dist/xianyu-slang-helper.zip
+            npx -y chrome-webstore-upload-cli@3 --source dist/*-chrome.zip
           else
             echo "仅上传草稿 (不提交审核, 去后台手动 Publish)…"
-            npx -y chrome-webstore-upload-cli@3 upload --source dist/xianyu-slang-helper.zip
+            npx -y chrome-webstore-upload-cli@3 upload --source dist/*-chrome.zip
           fi
 
       - name: 把 zip 附到 GitHub Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/xianyu-slang-helper.zip
+          files: dist/*-chrome.zip
           generate_release_notes: true

@@ -12,7 +12,7 @@ Chrome Web Store 手动发布过至少一次**（拿到 extension id），且配
 1. 打开 [Google Cloud Console](https://console.cloud.google.com/) → 新建（或选一个）项目。
 2. **APIs & Services → Library** → 搜索 **Chrome Web Store API** → Enable。
 3. 配置 OAuth（新版叫 **Google Auth Platform**，已没有单独的 “OAuth consent screen” 页）：
-   点 **Get started** → *App Information* 填应用名 + 支持邮箱 → ***Audience* 这一步选 `External`**
+   点 **Get started** → _App Information_ 填应用名 + 支持邮箱 → **_Audience_ 这一步选 `External`**
    （“External” 现在藏在这里；`Internal` 仅 Google Workspace 组织账号才有）→ 填联系邮箱 →
    同意 → 创建。完成后到左侧 **Audience → Test users → Add users**，把你管理扩展的那个
    Google 账号加进去（Testing 模式下只有测试用户能完成下一步授权）。
@@ -26,6 +26,7 @@ Chrome Web Store 手动发布过至少一次**（拿到 extension id），且配
    >
    > Google 官方文档里写的是 "Web application"，那是配合 OAuth Playground 手动换 token 的
    > 另一条路线，需要注册固定 redirect URI，跟这里用的工具对不上，别混着抄。
+
 5. **把 OAuth 应用发布到生产**（别跳过，否则 token 一周就废）：
    左侧 **Audience** → **Publish app**，把 Publishing status 从 `Testing` 改成 `In production`。
 
@@ -38,9 +39,11 @@ Chrome Web Store 手动发布过至少一次**（拿到 extension id），且配
    > **Advanced → Go to ... (unsafe)** 继续即可，不影响使用。
 
 6. 换取 **refresh token**——最省事的方式，本地跑官方助手按提示操作：
+
    ```bash
    npx -y chrome-webstore-upload-keys
    ```
+
    它会引导你用浏览器授权，最后把 **client ID / client secret / refresh token 三个值一起打印**。
 
    > refresh token 是**绑定在特定 OAuth client 上**的。如果这轮你新建了 client，
@@ -55,27 +58,29 @@ Chrome Web Store 开发者后台 → 选中你的扩展 → URL 里 `.../detail/
 
 仓库 **Settings → Secrets and variables → Actions → New repository secret**，加 4 个：
 
-| Secret 名 | 值 |
-|---|---|
-| `CHROME_EXTENSION_ID` | 扩展 id |
-| `CHROME_CLIENT_ID` | OAuth client id |
-| `CHROME_CLIENT_SECRET` | OAuth client secret |
+| Secret 名              | 值                         |
+| ---------------------- | -------------------------- |
+| `CHROME_EXTENSION_ID`  | 扩展 id                    |
+| `CHROME_CLIENT_ID`     | OAuth client id            |
+| `CHROME_CLIENT_SECRET` | OAuth client secret        |
 | `CHROME_REFRESH_TOKEN` | 上一步拿到的 refresh token |
 
 ---
 
 ## 二、每次发版
 
-1. 改完词典后，**把 `manifest.json` 和 `tools/dictionary.source.json` 的 `version` 改成同一个新版本号**
-   （`package.mjs` 和 CI 都会强校验一致，不一致直接失败）。
+1. 改完词典后，**只改 `package.json` 的 `version`**（版本唯一来源；`wxt.config.ts` 会把它写进
+   manifest，不再有 manifest / dictionary.source.json 双写不变量）。
 2. 提交并打 tag（tag 号要和 version 对上，带 `v` 前缀）：
    ```bash
-   git commit -am "release: v1.7.2"
-   git tag v1.7.2
+   git commit -am "release: v1.9.1"
+   git tag v1.9.1
    git push && git push --tags
    ```
-3. CI 自动跑：校验版本 → `node tools/package.mjs` → 打 zip → **上传为草稿** → 把 zip 附到 GitHub Release。
+3. CI 自动跑：校验 tag == package.json → `bun run release:build`（`wxt build` → `verify-dist` 安全检查 → `wxt zip`）→ **上传为草稿** → 把 zip 附到 GitHub Release。
 4. 去 [开发者后台](https://chrome.google.com/webstore/devconsole) 看一眼新版本，点 **Publish** 提交审核。
+
+> **本地想走同一条路**：`bun run release:build`，产物在 `dist/`（`*-chrome.zip` 里 manifest.json 已在根目录）。
 
 > **想跳过手动点发布**：在 Actions 页手动运行本工作流（workflow_dispatch），勾上 `publish=true`，
 > CI 会直接提交审核。**但**这会把内容直接送审/上线，建议仅在你已本地 `git diff` 过词典后使用。

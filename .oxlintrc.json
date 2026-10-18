@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true
+  },
+  "ignorePatterns": [
+    "docs/**",
+    "store-assets/**",
+    "data/**",
+    "public/**",
+    "dist/**",
+    "tools/*.staged.json",
+    "tools/dictionary.grey-area.json"
+  ],
+  "rules": {
+    // 模块内私有变量用 _ 前缀是刻意约定（loader 的闭包状态、content script 的扫描缓存）
+    "no-underscore-dangle": "off",
+    // tools/ 下的脚本靠 console 输出报告；entrypoints 里只用于错误兜底
+    "no-console": "off",
+    // 刻意串行：抓取要礼貌限流（REQUEST_DELAY_MS），复核要退避重试。并行会打爆上游
+    "no-await-in-loop": "off",
+    // 刻意内联：content script 的辅助函数留在 main() 里，避免在页面隔离世界的模块作用域留副作用
+    "unicorn/consistent-function-scoping": "off"
+  },
+  "globals": {
+    "defineBackground": "readonly",
+    "defineContentScript": "readonly",
+    "defineUnlistedScript": "readonly"
+  }
+}

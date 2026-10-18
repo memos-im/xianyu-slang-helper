@@ -24,7 +24,7 @@ The extension uses `chrome.storage.local` (a Chrome-provided local storage area,
 This data resides **only on your computer**. Uninstalling the extension removes it.
 
 ## How the dictionary works
-The extension ships with a static, locally-bundled slang dictionary (`data/dictionary.enc.json`). The file is AES-256-GCM encrypted purely as a static-scraping deterrent — encryption key is in plain sight inside `data/crypto.js`, and the decrypted dictionary is used only in-memory for matching. The full plaintext source is also published in the project's public source repository.
+The extension ships with a static, locally-bundled slang dictionary (`dictionary.enc.json`). The file is AES-256-GCM encrypted purely as a static-scraping deterrent — encryption key is in plain sight inside `src/dict/crypto.ts`, and the decrypted dictionary is used only in-memory for matching. The full plaintext source is also published in the project's public source repository.
 
 ## Built-in AI (optional)
 When you click the **🤖 用本地 AI 试试解读** button in the popup, the extension calls Chrome's [Built-in Prompt API](https://developer.chrome.com/docs/ai/prompt-api), which runs Google's on-device Gemini Nano model **entirely on your computer**. No data leaves your device. The button is opt-in (you must click it each time) and only appears when Built-in AI is available on your system.

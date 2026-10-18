@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "useTabs": false,
+  "indentWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "ignorePatterns": [
+    "docs/**",
+    "store-assets/**",
+    "data/**",
+    "public/**",
+    "dist/**",
+    "tools/*.staged.json",
+    "tools/dictionary.grey-area.json"
+  ]
+}

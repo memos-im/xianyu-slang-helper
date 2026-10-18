@@ -1,5 +1,5 @@
 // 词典误报与高危冲突扫描工具
-// 用法: node tools/audit-dict-risks.mjs
+// 用法: bun run tools/audit-dict.ts
 //
 // 检测逻辑:
 // 1. 极短单字符 (<=1 字符): 在长文本正文中极易造成灾难级假阳性 (例如 '米', 'V', '劳')
@@ -8,32 +8,42 @@
 // 4. 重复/自相矛盾 (同一个暗语映射到不同的正常词)
 
 import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import type { DictSource } from "../src/dict/types";
+import { COMMON_CHINESE_WORDS } from "./lib/dict-shared";
+import { SOURCE_PATH } from "./lib/paths";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dictPath = join(__dirname, "dictionary.source.json");
-const source = JSON.parse(readFileSync(dictPath, "utf8"));
+// source.json 由本管线读写: 断言已知形状 (结构异常时由后继访问自然抛错, encrypt-dict.ts 另有显式校验).
+const source = JSON.parse(readFileSync(SOURCE_PATH, "utf8")) as DictSource;
 
-// 常见日常通识词黑名单 (在没有强语境限制时极易引起商品误报)
-const COMMON_CHINESE_WORDS = new Set([
-  "米", "劳", "咽", "盐", "燕", "谷", "罐", "推", "担", "肾", "捆", "粥",
-  "白菜", "水果", "那个", "大作", "箱说", "成色", "毕业", "下水", "上车", "车位",
-  "刀", "骨折", "包邮", "自提", "秒了", "传家宝", "老哥", "学生", "捡漏",
-  "正规", "好女孩", "成功", "上班", "坐牢", "打工", "真理", "酒", "谁", "黑洞",
-  "攻", "大果", "典", "卫星", "国内", "暗网", "路由器", "高尔夫", "群主"
-]);
+interface RiskItem {
+  slang: string;
+  normal: string;
+  category: string;
+  reason: string;
+}
 
-const report = {
+interface DuplicateSlang {
+  slang: string;
+  conflict: Array<{ normal: string; category: string }>;
+}
+
+interface RiskReport {
+  singleChar: RiskItem[];
+  commonWordCollision: RiskItem[];
+  shortAsciiRisk: RiskItem[];
+  duplicateSlangs: DuplicateSlang[];
+}
+
+const report: RiskReport = {
   singleChar: [],
   commonWordCollision: [],
   shortAsciiRisk: [],
   duplicateSlangs: [],
 };
 
-const slangToNormalMap = new Map();
+const slangToNormalMap = new Map<string, { normal: string; category: string }>();
 
-let totalCategories = source.categories.length;
+const totalCategories = source.categories.length;
 let totalEntries = 0;
 let totalSlangs = 0;
 
@@ -45,8 +55,8 @@ for (const cat of source.categories) {
       const s = slang.trim();
 
       // 1. 重复暗语冲突
-      if (slangToNormalMap.has(s)) {
-        const prev = slangToNormalMap.get(s);
+      const prev = slangToNormalMap.get(s);
+      if (prev) {
         report.duplicateSlangs.push({
           slang: s,
           conflict: [prev, { normal, category: cat.id }],
@@ -112,7 +122,10 @@ for (const item of report.shortAsciiRisk) {
 if (report.duplicateSlangs.length > 0) {
   console.log(`\n⚠️  【冲突】重复暗语映射 (${report.duplicateSlangs.length} 个):`);
   for (const item of report.duplicateSlangs) {
-    console.log(`   - '${item.slang}' 同时映射到:`, item.conflict.map(c => `${c.normal}(${c.category})`).join(" VS "));
+    console.log(
+      `   - '${item.slang}' 同时映射到:`,
+      item.conflict.map((c) => `${c.normal}(${c.category})`).join(" VS "),
+    );
   }
 }
 

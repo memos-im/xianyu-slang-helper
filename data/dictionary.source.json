@@ -1,7 +1,6 @@
 {
-  "version": "1.9.0",
   "updatedAt": "2026-09-04",
-  "notes": "维护者编辑此文件后, 运行 `node tools/encrypt-dict.mjs` 生成 data/dictionary.enc.json. 此 source 文件本身不会被打包进发布包(可选: 加入 .gitignore 或 .vscodeignore).",
+  "notes": "维护者编辑此文件后, 运行 `bun run tools/encrypt-dict.ts` 生成 data/dictionary.enc.json. 此 source 文件本身不会被打包进发布包(可选: 加入 .gitignore 或 .vscodeignore). 版本唯一来源是 package.json (此文件不再设 version 字段).",
   "categories": [
     {
       "id": "electronics",

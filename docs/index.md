@@ -289,4 +289,4 @@ License: MIT
 - 词典遗漏 / 误报 / Bug：[GitHub Issues](https://github.com/memos-im/xianyu-slang-helper/issues)
 - 邮箱：[help@memos.im](mailto:help@memos.im)
 
-欢迎 PR 补充新黑话词条！编辑 [tools/dictionary.source.json](https://github.com/memos-im/xianyu-slang-helper/blob/main/tools/dictionary.source.json) 即可。
+欢迎 PR 补充新黑话词条！编辑 [data/dictionary.source.json](https://github.com/memos-im/xianyu-slang-helper/blob/main/data/dictionary.source.json) 即可。

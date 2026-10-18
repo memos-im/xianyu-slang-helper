@@ -141,7 +141,9 @@
   justify-content: center;
   z-index: 2147483646;
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 #xy-fab:hover {
@@ -310,8 +312,14 @@
   animation: xy-flash 1.2s ease-out;
 }
 @keyframes xy-flash {
-  0% { background: #fff2c4; box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.4); }
-  100% { background: transparent; box-shadow: 0 0 0 4px transparent; }
+  0% {
+    background: #fff2c4;
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.4);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 
 #xy-slang-tooltip {

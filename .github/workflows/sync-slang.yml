@@ -1,0 +1,101 @@
+# 定时同步开源暗语源 → 开 PR 供人工复核
+#
+# 设计取舍: 定时任务"不"直接推主干, 也"不"发布商店. 它只做两件事:
+#   1. 抓取上游开源词典 (awesome-chinese-secondhand-slang / search-sharp.com),
+#      经政策分档 + 风险变体 + 去重 (+ TypeSafe System One 噪音复核) 过滤后写进 data/dictionary.source.json;
+#   2. 若有改动, 开一个 PR. 人审 PR → 合并 → 需要发版时自己 bump package.json 的 version + 打 tag.
+# 这样既拿到"定时更新", 又保住 release.yml 坚持的人工过目门槛.
+#
+# 政策分两档 (见 tools/lib/dict-shared.ts): HARD (违法题材) 一律排除; GREY (假货/黄牛/
+# 引流等商店政策灰色题材) 允许写入, 所以合并本 PR 时请确认商店过审风险可接受。
+
+name: Sync slang dictionary
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # 每周一 03:00 UTC
+  workflow_dispatch: {} # 也可手动触发
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # 主源: awesome-chinese-secondhand-slang (结构化 GitHub 数据仓, 稳定)
+      # --ai-review: 用 TypeSafe System One (Jev) 剔除"模板化噪音"变体。
+      # 需 Secrets.TYPESAFE_API_KEY; 自托管 DiffusionGemma 可只给 TYPESAFE_BASE_URL (本地端点免鉴权)。
+      # 未配置 key 时脚本自行跳过并告警, 不阻断同步。
+      - name: 同步 awesome-chinese-secondhand-slang
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          TYPESAFE_BASE_URL: ${{ vars.TYPESAFE_BASE_URL }}
+          TYPESAFE_MODEL: ${{ vars.TYPESAFE_MODEL }}
+          AI_NOISE_THRESHOLD: ${{ vars.AI_NOISE_THRESHOLD }}
+        run: |
+          bun run tools/sync-awesome.ts --apply --ai-review | tee awesome-report.txt
+
+      # 次源: search-sharp.com (众包站, 在 Cloudflare 后面, CI 里可能被挡/限流).
+      # 失败不阻断整个任务 —— 主源的成功不应被次源的网络抖动拖垮.
+      - name: 同步 search-sharp.com (尽力而为)
+        run: |
+          bun run tools/sync-searchsharp.ts --apply | tee searchsharp-report.txt || \
+            echo "::warning::search-sharp.com 同步失败 (网络/限流?), 本次跳过该源"
+
+      - name: 审计合并后的词典 (误报/冲突)
+        run: bun run tools/audit-dict.ts | tee audit-report.txt
+
+      - name: 写 job summary
+        if: always()
+        run: |
+          {
+            echo '## 词典同步报告'
+            echo '### awesome-chinese-secondhand-slang'
+            echo '```'
+            cat awesome-report.txt 2>/dev/null || echo '(无)'
+            echo '```'
+            echo '### audit-dict'
+            echo '```'
+            cat audit-report.txt 2>/dev/null || echo '(无)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 检查是否有词典改动
+        id: diff
+        run: |
+          if git diff --quiet -- data/dictionary.source.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- data/dictionary.source.json
+          fi
+
+      - name: 开/更新 PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/sync-slang
+          delete-branch: true
+          commit-message: "chore(dict): 同步开源暗语源"
+          title: "chore(dict): 定时同步开源暗语源"
+          body: |
+            自动同步 `awesome-chinese-secondhand-slang`（及尽力而为的 `search-sharp.com`）后合并的词典更新。
+
+            合并前请人工复核（这是本流程唯一的人审闸口）：
+            - [ ] 看 job summary / 本地 `bun run dict:audit`，确认无新增高危误报
+            - [ ] **确认 GREY 政策档（假货/黄牛/引流等）新词是否可接受上架**——它们默认会被写入
+            - [ ] 抽查「社区补充」分类里的新概念，手工细分到正式分类（可选）
+            - [ ] 剔除 System One 复核未覆盖到的残余噪音
+            - [ ] 需要发版时：手动 bump `package.json` 的 version，再打 `v*` tag
+
+            HARD 政策档命中项（违法题材）与风险变体（单字/短缩写/日常词）已在脚本内剔除，不会出现在本 PR 中。

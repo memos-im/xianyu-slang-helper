@@ -1,0 +1,9 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["node"]
+  },
+  "include": ["src", "tools", "wxt.config.ts", ".wxt/wxt.d.ts"],
+  "exclude": ["node_modules", ".output", "docs", "store-assets"]
+}

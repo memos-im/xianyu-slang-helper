@@ -1,9 +1,9 @@
 // 从 search-sharp.com 抓取众包暗语, 质量/政策过滤后并入本项目词典
 // 用法:
-//   node tools/fetch-searchsharp.mjs                 # 预览: 只抓取+过滤+暂存, 不改 source
-//   node tools/fetch-searchsharp.mjs --apply         # 把过滤后的新词并入 dictionary.source.json
-//   node tools/fetch-searchsharp.mjs --max-pages 2   # 只抓前 2 页 (调试/限流)
-//   node tools/fetch-searchsharp.mjs --min-score 3   # 提高保留门槛 (净赞数, 默认 1)
+//   bun run tools/sync-searchsharp.ts                 # 预览: 只抓取+过滤+暂存, 不改 source
+//   bun run tools/sync-searchsharp.ts --apply         # 把过滤后的新词并入 dictionary.source.json
+//   bun run tools/sync-searchsharp.ts --max-pages 2   # 只抓前 2 页 (调试/限流)
+//   bun run tools/sync-searchsharp.ts --min-score 3   # 提高保留门槛 (净赞数, 默认 1)
 //
 // 设计:
 //   - search-sharp.com 是一个 React SPA, 数据来自公开只读 API:
@@ -16,14 +16,10 @@
 //
 // 数据流: search-sharp.com/api --(抓取)--> 归一化 --(过滤)--> staged.json --(--apply)--> dictionary.source.json
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..");
-const SOURCE_PATH = join(ROOT, "tools", "dictionary.source.json");
-const STAGED_PATH = join(ROOT, "tools", "searchsharp.staged.json");
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import type { DictCategory, DictSource } from "../src/dict/types";
+import { buildLocalIndex, isJsonObject, mergeVariants, policyHit, stringifyDict } from "./lib/dict-shared";
+import { SOURCE_PATH, SEARCHSHARP_STAGED_PATH as STAGED_PATH } from "./lib/paths";
 
 const BASE = "https://search-sharp.com";
 const PAGE_SIZE = 20;
@@ -31,87 +27,109 @@ const REQUEST_DELAY_MS = 400; // 礼貌限流: 站点在 Cloudflare 后面, 别�
 
 // 投放到 source.json 的"新概念"落脚分类 (SearchSharp 没有可用分类, 全是"用户添加").
 // 先统一进这个分类, 之后可在 source.json 内手工细分到 15 个正式分类。
-const COMMUNITY_CATEGORY = { id: "community", name: "社区补充", icon: "🌐" };
-
-// 保持 source.json 的手写格式 (对象多行/2空格, 字符串数组单行 ["a", "b"]),
-// 这样 --apply 后 git diff 只显示真正新增的行, 而不是整文件重排.
-function stringifyDict(obj) {
-  const ser = (v, ind) => {
-    const pad = "  ".repeat(ind), pad1 = "  ".repeat(ind + 1);
-    if (Array.isArray(v)) {
-      if (v.every((x) => x === null || typeof x !== "object"))
-        return "[" + v.map((x) => JSON.stringify(x)).join(", ") + "]";
-      return "[\n" + v.map((x) => pad1 + ser(x, ind + 1)).join(",\n") + "\n" + pad + "]";
-    }
-    if (v && typeof v === "object") {
-      const ks = Object.keys(v);
-      if (!ks.length) return "{}";
-      return "{\n" + ks.map((k) => pad1 + JSON.stringify(k) + ": " + ser(v[k], ind + 1)).join(",\n") + "\n" + pad + "}";
-    }
-    return JSON.stringify(v);
-  };
-  return ser(obj, 0) + "\n";
-}
+const COMMUNITY_CATEGORY: { id: string; name: string; icon: string } = {
+  id: "community",
+  name: "社区补充",
+  icon: "🌐",
+};
 
 // ============ CLI 参数 ============
-const argv = process.argv.slice(2);
-const hasFlag = (f) => argv.includes(f);
-const flagVal = (f, dflt) => {
+const argv: string[] = process.argv.slice(2);
+const hasFlag = (f: string): boolean => argv.includes(f);
+const flagVal = (f: string, dflt: string): string => {
   const i = argv.indexOf(f);
-  return i >= 0 && argv[i + 1] ? argv[i + 1] : dflt;
+  return i >= 0 ? (argv[i + 1] ?? dflt) : dflt;
 };
-const APPLY = hasFlag("--apply");
-const MAX_PAGES = parseInt(flagVal("--max-pages", "0"), 10) || Infinity;
-const MIN_SCORE = parseInt(flagVal("--min-score", "1"), 10);
+const APPLY: boolean = hasFlag("--apply");
+const MAX_PAGES: number = parseInt(flagVal("--max-pages", "0"), 10) || Infinity;
+const MIN_SCORE: number = parseInt(flagVal("--min-score", "1"), 10);
 
-// ============ 政策黑名单 ============
-// Chrome Web Store 内容政策 + 项目已知敏感主题 (见 tools/dictionary.grey-area.json).
-// 命中产品名或任一变体, 整条产品被排除并单列到报告, 由人决定是否手工收录.
-// 取向: 宁可错杀 — 漏网的违规词进了发布包代价远大于误杀一个正经词.
-const POLICY_RULES = [
-  { label: "色情/特殊服务", re: /色情|约炮|约啪|裸聊|援交|楼凤|小姐|性服务|一夜情|同城约|上门服务|特殊服务|可骑|骑\s*\d|贴身衣物|私密物品|原味|穿过的|esc(?:ort)?|啪啪/i },
-  { label: "毒品/管制药", re: /大麻|可卡因|冰毒|摇头丸|迷药|listen水|听话水|笑气|飞叶子|嗑药|kush|weed|\bmdma\b|\blsd\b|特殊货|外烟特殊/i },
-  { label: "武器弹药", re: /枪支|手枪|步枪|弹药|子弹|管制刀具|甩棍|电棍|弩箭|爆炸物/i },
-  { label: "赌博", re: /赌博|博彩|私彩|六合彩|外围盘|时时彩/i },
-  { label: "外挂/黑产/盗号", re: /外挂|辅助器|破解器|盗号|社工库|黑客服务|四件套|洗钱|发卡网|秒u|跑分/i },
-  { label: "涉未成年/年龄硬币", re: /未成年|萝莉|幼\s*女|稚嫩|硬币年份|\d{2}年硬币|年份硬币/i },
-];
+// ============ 类型 ============
+interface SearchSharpVote {
+  text?: string;
+  up?: number | null;
+  down?: number | null;
+}
 
-function policyHit(tokens) {
-  for (const rule of POLICY_RULES) {
-    if (tokens.some((t) => rule.re.test(t))) return rule.label;
-  }
-  return null;
+interface SearchSharpProduct {
+  id?: number | string | null;
+  name?: string;
+  aliases?: Array<string | SearchSharpVote>;
+  keywords?: SearchSharpVote[];
+  category?: string | null;
+}
+
+interface ScoredVariant {
+  text: string;
+  score: number | null;
+}
+
+interface SearchSharpNewEntry {
+  name: string;
+  ssCategory: string | null;
+  variants: ScoredVariant[];
+}
+
+interface SearchSharpNewVariants {
+  existingNormal: string;
+  category: string;
+  newVariants: ScoredVariant[];
+}
+
+interface SearchSharpFiltered {
+  name: string;
+  reason: string;
+  variants: string[];
+}
+
+interface SearchSharpStats {
+  productsFetched: number;
+  newEntries: number;
+  newVariantsForExisting: number;
+  variantsAddedToExisting: number;
+  productsFilteredPolicy: number;
+  variantsDroppedLowScore: number;
+  productsAlreadyHave: number;
+}
+
+interface SearchSharpResult {
+  newEntries: SearchSharpNewEntry[];
+  newVariantsForExisting: SearchSharpNewVariants[];
+  filteredForPolicy: SearchSharpFiltered[];
+  stats: SearchSharpStats;
 }
 
 // ============ 抓取 ============
-async function fetchAll() {
+async function fetchAll(): Promise<SearchSharpProduct[]> {
   if (typeof fetch !== "function") {
     throw new Error("需要 Node 18+ (内置 fetch)");
   }
-  const products = [];
-  const seenIds = new Set(); // 去重兜底, 防 offset 抖动
+  const products: SearchSharpProduct[] = [];
+  const seenIds = new Set<number | string>(); // 去重兜底, 防 offset 抖动
   let offset = 0;
   let page = 0;
   while (page < MAX_PAGES) {
     const url = `${BASE}/api/products?q=&sort=new&offset=${offset}`;
     const resp = await fetch(url, { headers: { accept: "application/json" } });
     if (!resp.ok) throw new Error(`抓取失败 HTTP ${resp.status} @ offset=${offset}`);
-    const data = await resp.json();
-    const batch = Array.isArray(data.products) ? data.products : [];
-    let added = 0;
+    // 外部应答不信任其形状: 先收敛为 unknown, 确认对象性后再 tolerant 读取
+    // (缺 products 视为空批次, 与旧逻辑一致).
+    const body: unknown = await resp.json();
+    const data: Record<string, unknown> = isJsonObject(body) ? body : {};
+    const batch: SearchSharpProduct[] = Array.isArray(data.products) ? data.products : [];
     for (const p of batch) {
       if (p && p.id != null && !seenIds.has(p.id)) {
         seenIds.add(p.id);
         products.push(p);
-        added++;
       }
     }
     page++;
     process.stdout.write(`\r  已抓取 ${products.length} 条 (第 ${page} 页)...`);
     if (!data.hasMore || batch.length === 0) break;
     offset += PAGE_SIZE;
-    await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
+    const { promise, resolve } = Promise.withResolvers<void>();
+    setTimeout(resolve, REQUEST_DELAY_MS);
+    await promise;
   }
   process.stdout.write("\n");
   return products;
@@ -119,10 +137,10 @@ async function fetchAll() {
 
 // 把一条 SearchSharp 产品的变体收集出来 (aliases + keywords), 应用质量门槛.
 // keyword 形如 {text, up, down}; alias 可能是字符串或 {text,...}. 二者都并入"暗语".
-function collectVariants(product) {
-  const out = [];
-  const lowScore = [];
-  const pushVariant = (text, up, down) => {
+function collectVariants(product: SearchSharpProduct): { variants: ScoredVariant[]; lowScore: ScoredVariant[] } {
+  const out: ScoredVariant[] = [];
+  const lowScore: ScoredVariant[] = [];
+  const pushVariant = (text: string | null | undefined, up?: number | null, down?: number | null): void => {
     const t = String(text || "").trim();
     if (!t) return;
     const score = (up || 0) - (down || 0);
@@ -143,24 +161,11 @@ function collectVariants(product) {
 }
 
 // ============ 与本地词典对比, 分类暂存 ============
-function buildLocalIndex(source) {
-  const normalIndex = new Map(); // lower(normal) -> {catId, normalKey}
-  const known = new Set(); // lower(所有 normal + 所有 slang)
-  for (const cat of source.categories) {
-    for (const [normal, slangs] of Object.entries(cat.entries)) {
-      normalIndex.set(normal.toLowerCase(), { catId: cat.id, normalKey: normal });
-      known.add(normal.toLowerCase());
-      for (const s of slangs) known.add(String(s).toLowerCase());
-    }
-  }
-  return { normalIndex, known };
-}
-
-function categorize(products, source) {
+function categorize(products: SearchSharpProduct[], source: DictSource): SearchSharpResult {
   const { normalIndex, known } = buildLocalIndex(source);
-  const newEntries = [];
-  const newVariantsForExisting = [];
-  const filteredForPolicy = [];
+  const newEntries: SearchSharpNewEntry[] = [];
+  const newVariantsForExisting: SearchSharpNewVariants[] = [];
+  const filteredForPolicy: SearchSharpFiltered[] = [];
   let droppedLowScore = 0;
   let alreadyHave = 0;
 
@@ -218,56 +223,49 @@ function categorize(products, source) {
 }
 
 // ============ --apply: 写回 source.json ============
-function applyToSource(source, result) {
+function applyToSource(source: DictSource & { version?: unknown }, result: SearchSharpResult): void {
   // 1) 给已有词条补充变体 (并集去重, 保序)
   for (const item of result.newVariantsForExisting) {
-    const cat = source.categories.find((c) => c.id === item.category);
-    if (!cat) continue;
-    const arr = cat.entries[item.existingNormal];
-    if (!arr) continue;
-    const seen = new Set(arr.map((s) => s.toLowerCase()));
-    for (const v of item.newVariants) {
-      if (!seen.has(v.text.toLowerCase())) {
-        arr.push(v.text);
-        seen.add(v.text.toLowerCase());
-      }
-    }
+    mergeVariants(
+      source,
+      item.category,
+      item.existingNormal,
+      item.newVariants.map((v) => v.text),
+    );
   }
 
   // 2) 新概念统一进"社区补充"分类 (之后可手工细分)
   if (result.newEntries.length) {
-    let community = source.categories.find((c) => c.id === COMMUNITY_CATEGORY.id);
+    let community: DictCategory | undefined = source.categories.find((c) => c.id === COMMUNITY_CATEGORY.id);
     if (!community) {
       community = { ...COMMUNITY_CATEGORY, entries: {} };
       source.categories.push(community);
     }
     for (const e of result.newEntries) {
-      const existing = community.entries[e.name] || [];
-      const seen = new Set(existing.map((s) => s.toLowerCase()));
-      for (const v of e.variants) {
-        if (!seen.has(v.text.toLowerCase())) {
-          existing.push(v.text);
-          seen.add(v.text.toLowerCase());
-        }
-      }
-      if (existing.length) community.entries[e.name] = existing;
+      mergeVariants(
+        source,
+        COMMUNITY_CATEGORY.id,
+        e.name,
+        e.variants.map((v) => v.text),
+      );
     }
   }
 
-  // 3) 更新日期 (version 不动 — 发布前由人工显式 bump, 保持 manifest 同步)
+  // 3) 只更新日期 —— version 字段已废弃, 版本唯一来源是 package.json (见 tools/lib/paths.ts).
+  if ("version" in source) delete source.version;
   source.updatedAt = new Date().toISOString().slice(0, 10);
   writeFileSync(SOURCE_PATH, stringifyDict(source), "utf8");
 }
 
 // ============ 报告 ============
-function printReport(result, applied) {
+function printReport(result: SearchSharpResult, applied: boolean): void {
   const s = result.stats;
   console.log("\n================ SearchSharp 同步报告 ================");
   console.log(`抓取产品总数      : ${s.productsFetched}`);
   console.log(`新概念 (待归类)    : ${s.newEntries}`);
   console.log(`给已有词条补变体    : ${s.newVariantsForExisting} 个词条 / ${s.variantsAddedToExisting} 个变体`);
   console.log(`本地已收录(跳过)   : ${s.productsAlreadyHave}`);
-  console.log(`质量过滤(低赞丢弃)  : ${s.variantsDroppedLowScore} 个变体  (门槛 净赞≥${MIN_SCORE})`);
+  console.log(`质量过滤(低分丢弃)  : ${s.variantsDroppedLowScore} 个变体  (门槛 净赞≥${MIN_SCORE})`);
   console.log(`⚠️  政策过滤(已排除) : ${s.productsFilteredPolicy} 个产品  (绝不写入发布包)`);
 
   if (result.filteredForPolicy.length) {
@@ -290,7 +288,12 @@ function printReport(result, applied) {
   if (result.newEntries.length) {
     console.log("\n  全新概念 (样例, --apply 后进入「社区补充」分类待细分):");
     for (const e of result.newEntries.slice(0, 15)) {
-      console.log(`    ${e.name}  →  ${e.variants.map((v) => v.text).slice(0, 6).join("、")}`);
+      console.log(
+        `    ${e.name}  →  ${e.variants
+          .map((v) => v.text)
+          .slice(0, 6)
+          .join("、")}`,
+      );
     }
     if (result.newEntries.length > 15) {
       console.log(`    ... 其余 ${result.newEntries.length - 15} 个见 staged.json`);
@@ -299,8 +302,8 @@ function printReport(result, applied) {
 
   console.log("\n=====================================================");
   if (applied) {
-    console.log("✅ 已写入 tools/dictionary.source.json");
-    console.log("   下一步: git diff 复核 → (发布则 bump manifest+source 的 version) → node tools/package.mjs");
+    console.log("✅ 已写入 data/dictionary.source.json");
+    console.log("   下一步: git diff 复核 → (发布则 bump package.json 的 version)");
   } else {
     console.log(`📋 已暂存到 ${STAGED_PATH} (未改动 source)`);
     console.log("   复核无误后, 重跑加 --apply 写入词典; 或据 staged.json 手工归类。");
@@ -308,11 +311,12 @@ function printReport(result, applied) {
 }
 
 // ============ 主流程 ============
-async function main() {
+async function main(): Promise<void> {
   if (!existsSync(SOURCE_PATH)) {
     throw new Error(`找不到 ${SOURCE_PATH} — 请在项目根目录运行`);
   }
-  const source = JSON.parse(readFileSync(SOURCE_PATH, "utf8"));
+  // source.json 由本管线读写: 断言已知形状 (结构异常时由后继访问自然抛错, encrypt-dict.ts 另有显式校验).
+  const source = JSON.parse(readFileSync(SOURCE_PATH, "utf8")) as DictSource;
 
   console.log(`抓取 ${BASE} ...`);
   const products = await fetchAll();
@@ -334,7 +338,7 @@ async function main() {
   printReport(result, APPLY);
 }
 
-main().catch((err) => {
-  console.error("\n❌ " + (err.stack || err.message || err));
+main().catch((err: unknown) => {
+  console.error("\n❌ " + (err instanceof Error ? err.stack || err.message : String(err)));
   process.exit(1);
 });

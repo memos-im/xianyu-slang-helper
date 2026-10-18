@@ -1,0 +1,32 @@
+{
+  "name": "xianyu-slang-helper",
+  "version": "1.9.0",
+  "private": true,
+  "description": "闲鱼词典 — 暗语提示与解读的 Chrome 扩展",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "postinstall": "wxt prepare",
+    "compile": "bun check",
+    "lint": "oxlint",
+    "fmt": "oxfmt --write",
+    "fmt:check": "oxfmt --check",
+    "verify": "bun run compile && bun run lint && bun run fmt:check",
+    "verify:dist": "bun run tools/verify-dist.ts",
+    "release:build": "bun run build && bun run verify:dist && bun run zip",
+    "dict:sync": "bun run tools/sync-awesome.ts",
+    "dict:sync:searchsharp": "bun run tools/sync-searchsharp.ts",
+    "dict:audit": "bun run tools/audit-dict.ts",
+    "dict:encrypt": "bun run tools/encrypt-dict.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5",
+    "wxt": "^0.21.4"
+  }
+}
