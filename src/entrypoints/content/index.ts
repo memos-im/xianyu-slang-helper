@@ -2,6 +2,7 @@ import "./style.css";
 import { browser } from "wxt/browser";
 import { xyDict } from "@/dict/loader";
 import type { ScanIndexes } from "@/dict/types";
+import type { SlangMatcher } from "@/dict/matcher";
 
 export default defineContentScript({
   matches: ["*://*.goofish.com/*", "*://*.xianyu.com/*", "*://2.taobao.com/*"],
@@ -10,7 +11,7 @@ export default defineContentScript({
   async main() {
     // 闭包内持有解密后的索引，不挂任何 window
     let _reverse: Record<string, string[]> = {};
-    let _slangRegex: RegExp | null = null;
+    let _matcher: SlangMatcher | null = null;
     let _customSlangs: Set<string> = new Set();
     let decodeEnabled = true;
 
@@ -262,26 +263,21 @@ export default defineContentScript({
     }
 
     function annotateNode(textNode: Text): void {
-      if (!_slangRegex || !_reverse) return;
+      if (!_matcher || !_reverse) return;
       const text = textNode.nodeValue;
       if (!text || text.length < 1) return;
-      _slangRegex.lastIndex = 0;
-      if (!_slangRegex.test(text)) {
-        _slangRegex.lastIndex = 0;
-        return;
-      }
-      _slangRegex.lastIndex = 0;
+      const matches = _matcher.match(text);
+      if (matches.length === 0) return;
 
       const frag = document.createDocumentFragment();
       let lastIndex = 0;
-      let match: RegExpExecArray | null;
       let hadAny = false;
-      while ((match = _slangRegex.exec(text)) !== null) {
-        if (shouldSkipMatch(text, match.index, match[0])) continue;
-        if (match.index > lastIndex) {
-          frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      for (const match of matches) {
+        if (shouldSkipMatch(text, match.start, match.word)) continue;
+        if (match.start > lastIndex) {
+          frag.appendChild(document.createTextNode(text.slice(lastIndex, match.start)));
         }
-        const slang = match[0];
+        const slang = match.word;
         const meanings = _reverse[slang] ?? _reverse[slang.toLowerCase()] ?? [];
         const isCustom = _customSlangs.has(slang);
         const span = document.createElement("span");
@@ -293,7 +289,7 @@ export default defineContentScript({
         });
         span.addEventListener("mouseleave", hideTooltip);
         frag.appendChild(span);
-        lastIndex = match.index + slang.length;
+        lastIndex = match.end;
         hadAny = true;
       }
       if (!hadAny) return; // 所有匹配都被跳过，别替换 text 节点
@@ -315,7 +311,7 @@ export default defineContentScript({
     };
 
     function walkAndAnnotate(root: Node | null): void {
-      if (!decodeEnabled || !_slangRegex) return;
+      if (!decodeEnabled || !_matcher) return;
       if (!root || root.nodeType !== Node.ELEMENT_NODE) return;
       const rootEl = root as Element;
       if (rootEl.id === "xy-slang-panel" || rootEl.id === "xy-slang-tooltip") return;
@@ -499,7 +495,7 @@ export default defineContentScript({
 
     async function reloadIndexes(): Promise<void> {
       const indexes: ScanIndexes = await xyDict.getScanIndexes();
-      _slangRegex = indexes.regex;
+      _matcher = indexes.matcher;
       _reverse = indexes.reverse;
       _customSlangs = indexes.customSlangs ?? new Set<string>();
     }
@@ -520,6 +516,21 @@ export default defineContentScript({
       bindSearchInputs();
       walkAndAnnotate(document.body);
 
+      // 无限滚动时每个新卡片都会触发一次 mutation。原先是在回调里同步 walkAndAnnotate，
+      // 一帧内插入 N 个卡片就串行扫 N 次，把主线程占满。改成攒到下一帧一次性处理。
+      let pendingRoots: Node[] = [];
+      let scanRaf = 0;
+      const scheduleAnnotate = (root: Node): void => {
+        pendingRoots.push(root);
+        if (scanRaf) return;
+        scanRaf = requestAnimationFrame(() => {
+          scanRaf = 0;
+          const batch = pendingRoots;
+          pendingRoots = [];
+          for (const r of batch) walkAndAnnotate(r);
+        });
+      };
+
       const observer = new MutationObserver((mutations: MutationRecord[]) => {
         let needBind = false;
         mutations.forEach((m) => {
@@ -529,7 +540,7 @@ export default defineContentScript({
             if (el.tagName === "INPUT" || el.querySelector?.("input")) {
               needBind = true;
             }
-            walkAndAnnotate(node);
+            scheduleAnnotate(node);
           });
         });
         if (needBind) bindSearchInputs();

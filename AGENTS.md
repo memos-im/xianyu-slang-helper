@@ -102,9 +102,21 @@ ES module 的顶层绑定天然不可枚举、不可写，比旧版 IIFE 的 `de
 外部只能调用按需查询函数（`suggestSlangsFor` / `decodeText` / `getCategoryEntries` / …），
 **不存在**一次性 dump 整本词典的接口。这是刻意的防抓取边界，不是随手写的。
 
-`buildIndexes()` 派生：正向表（normal → slangs）、反向表（slang → normals）、以及一个合成
-`RegExp`（暗语交替、长者优先）用于扫描页面文本。用户自定义词典（`storage.local.customDict`）
-作为一个合成 `custom` 分类并入；`storage.onChanged` 监听会失效并重建索引。
+`buildIndexes()` 派生：正向表（normal → slangs）、反向表（slang → normals）、以及一个
+`SlangMatcher`（`src/dict/matcher.ts`）用于扫描页面文本。用户自定义词典
+（`storage.local.customDict`）作为一个合成 `custom` 分类并入；`storage.onChanged`
+监听会失效并重建索引。
+
+**为什么不用「拼一个巨型正则」**：那是最初的写法，3322 个变长、无公共前缀的 CJK/英数混合
+字面量让 V8 建不出紧凑的 DFA/trie，退化成每个字符位置逐分支试探（≈ O(文本长度 × 分支数)）。
+实测 400 节点 / 35k 字：896 变体 29ms → 3322 变体 **266ms**（会阻塞主线程）。换成 trie 后
+同一语料 **1.1ms**，且与词条数解耦。
+
+trie 必须与旧正则**逐位等价**，靠 `bun run verify:matcher`（`tools/verify-matcher.ts`）守住，
+它把旧正则当作参考实现，在定点用例 + 全词典语料上比对匹配序列。三个容易踩的点：
+非重叠最左最长、大小写不敏感、以及**全程用 UTF-16 码元而不是码点**（建树用码点会让
+`🐧`/`🪜`/`小🍠` 这类非 BMP 变体永远匹配不上）。匹配结果返回**原文切片**而非词典规范写法 ——
+调用方会写回 DOM，用规范写法会把页面上的 `iP` 静默改成 `ip`。
 
 ### 加密（防爬虫，不是防逆向）
 

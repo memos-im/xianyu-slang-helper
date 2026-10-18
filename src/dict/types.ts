@@ -6,6 +6,8 @@
  */
 
 /** 一个词条：normal 是标准词，值是它的全部暗语变体 */
+import type { SlangMatcher } from "./matcher";
+
 export type EntryMap = Record<string, string[]>;
 
 export interface DictCategory {
@@ -64,7 +66,7 @@ export interface DecodeHit {
 }
 
 export interface ScanIndexes {
-  regex: RegExp | null;
+  matcher: SlangMatcher | null;
   reverse: Record<string, string[]>;
   customSlangs: Set<string>;
 }

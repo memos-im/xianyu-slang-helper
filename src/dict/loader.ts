@@ -16,6 +16,7 @@
 import { browser } from "wxt/browser";
 import { ENC_PATH, PLAIN_PATH } from "./constants";
 import { countStats, loadEncrypted } from "./crypto";
+import { SlangMatcher } from "./matcher";
 import type {
   AiContext,
   AiContextEntry,
@@ -28,6 +29,7 @@ import type {
   DictMeta,
   DictSource,
   EntryMap,
+  ScanIndexes,
   Suggestion,
 } from "./types";
 
@@ -38,16 +40,12 @@ let _loadPromise: Promise<void> | null = null;
 
 let _flatDict: Record<string, string[]> | null = null;
 let _reverse: Record<string, string[]> | null = null;
-let _slangRegex: RegExp | null = null;
+let _matcher: SlangMatcher | null = null;
 
 let _customEntries: EntryMap | null = null;
 let _customSlangSet = new Set<string>();
 
 const CUSTOM_STORAGE_KEY = "customDict";
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 function buildIndexes(categories: DictCategory[]) {
   const flat: Record<string, string[]> = {};
@@ -63,9 +61,8 @@ function buildIndexes(categories: DictCategory[]) {
       }
     }
   }
-  const keys = Object.keys(reverse).toSorted((a, b) => b.length - a.length);
-  const regex = keys.length ? new RegExp(keys.map(escapeRegex).join("|"), "gi") : null;
-  return { flat, reverse, regex };
+  const matcher = new SlangMatcher(Object.keys(reverse));
+  return { flat, reverse, matcher };
 }
 
 /** 开发期：读明文 source（发布包里不存在，必然 404 → 回落加密路径）。 */
@@ -121,7 +118,7 @@ async function ensureLoaded(): Promise<void> {
       const idx = buildIndexes(_categories);
       _flatDict = idx.flat;
       _reverse = idx.reverse;
-      _slangRegex = idx.regex;
+      _matcher = idx.matcher;
     })();
   }
   return _loadPromise;
@@ -134,7 +131,7 @@ browser.storage.onChanged.addListener((changes, area) => {
     _loadPromise = null;
     _flatDict = null;
     _reverse = null;
-    _slangRegex = null;
+    _matcher = null;
     _customEntries = null;
     _customSlangSet = new Set();
   }
@@ -227,27 +224,21 @@ async function decodeSlang(slang: string): Promise<string[] | null> {
 async function decodeText(text: string): Promise<DecodeHit[]> {
   await ensureLoaded();
   const reverse = _reverse as Record<string, string[]>;
-  if (!_slangRegex || !text) return [];
-  _slangRegex.lastIndex = 0;
+  if (!_matcher || !text) return [];
   const found = new Map<string, string[]>();
-  let m: RegExpExecArray | null;
-  while ((m = _slangRegex.exec(text)) !== null) {
-    const key = m[0];
+  for (const m of _matcher.match(text)) {
+    const key = m.word;
     const meanings = reverse[key] || reverse[key.toLowerCase()];
     if (meanings && !found.has(key)) found.set(key, [...meanings]);
   }
   return [...found.entries()].map(([slang, meanings]) => ({ slang, meanings }));
 }
 
-/** 给 content script 扫描整页用：返回 regex + reverse 快照。 */
-async function getScanIndexes(): Promise<{
-  regex: RegExp | null;
-  reverse: Record<string, string[]>;
-  customSlangs: Set<string>;
-}> {
+/** 给 content script 扫描整页用：返回匹配器 + reverse 快照。 */
+async function getScanIndexes(): Promise<ScanIndexes> {
   await ensureLoaded();
   return {
-    regex: _slangRegex,
+    matcher: _matcher,
     reverse: _reverse as Record<string, string[]>,
     customSlangs: new Set(_customSlangSet), // 副本，防外部修改
   };

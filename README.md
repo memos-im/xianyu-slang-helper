@@ -65,7 +65,7 @@ bun run build        # 构建 → dist/chrome-mv3
 bun run compile      # 类型检查（bun check）
 bun run lint         # oxlint
 bun run fmt          # oxfmt --write
-bun run verify       # 类型检查 + lint + 格式校验（发版 CI 的闸门）
+bun run verify       # 类型检查 + lint + 格式 + 匹配器等价性（发版 CI 的闸门）
 ```
 
 ### 装进 Chrome 调试
@@ -180,6 +180,7 @@ xianyu-slang-helper/
 │   │   ├── constants.ts     # 加密常量（运行时与构建期共用）
 │   │   ├── crypto.ts        # AES-GCM 加解密
 │   │   ├── loader.ts        # 受控查询 API，闭包持有明文
+│   │   ├── matcher.ts       # 暗语匹配：trie 逐位置最长匹配（替代巨型正则）
 │   │   └── types.ts         # 数据模型
 ├── public/icon/             # 图标（WXT publicDir = <root>/public）
 ├── data/
