@@ -199,6 +199,11 @@ body {
   flex-wrap: wrap;
   gap: 6px;
 }
+.result-tag-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
 .result-tag {
   display: inline-block;
   padding: 4px 10px;
@@ -217,13 +222,33 @@ body {
 }
 .result-tag.copied::after {
   content: " ✓";
-  color: #43a047;
+  color: #2e7d32;
+}
+.btn-search-goofish {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #ffd4a8;
+  background: #fff;
+  color: #c8541f;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.btn-search-goofish:hover {
+  background: #ff8c42;
+  border-color: #ff8c42;
+  color: #fff;
 }
 
 /* ==== 我的词典 ==== */
 .custom-form {
-  background: #f5f9ff;
-  border: 1px solid #d6e4ff;
+  background: #fffbf7;
+  border: 1px solid #ffe3cf;
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;
@@ -231,7 +256,7 @@ body {
 .custom-form input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #d6e4ff;
+  border: 1px solid #ffd8bf;
   border-radius: 6px;
   font-size: 12px;
   font-family: inherit;
@@ -240,7 +265,7 @@ body {
   margin-bottom: 6px;
 }
 .custom-form input:focus {
-  border-color: #3b82f6;
+  border-color: #ff8c42;
 }
 .custom-form input:disabled {
   background: #f0f0f0;
@@ -251,10 +276,10 @@ body {
   gap: 6px;
 }
 .custom-form-actions .btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  background: linear-gradient(135deg, #ff8c42 0%, #ffaa66 100%);
 }
 .custom-form-actions .btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #4d97f5 100%);
+  background: linear-gradient(135deg, #f07b2f 0%, #ff994d 100%);
 }
 .custom-form-msg {
   font-size: 11px;
@@ -320,7 +345,7 @@ body {
 
 .custom-entry {
   background: #fff;
-  border: 1px solid #e8eefa;
+  border: 1px solid #f2e9e2;
   border-radius: 8px;
   padding: 8px 10px;
   margin-bottom: 6px;
@@ -334,7 +359,7 @@ body {
 }
 .custom-entry-normal {
   font-weight: 600;
-  color: #1e3a8a;
+  color: #c8541f;
   font-size: 13px;
   word-break: break-all;
 }
@@ -352,12 +377,11 @@ body {
 .custom-chip {
   font-size: 11px;
   padding: 2px 8px;
-  background: #e0edff;
-  color: #1e40af;
+  background: #fff5ec;
+  color: #c8541f;
   border-radius: 10px;
-  border: 1px solid #c7d9f5;
+  border: 1px solid #ffd4a8;
 }
-
 .btn.btn-danger {
   background: #fff5f5;
   color: #c62828;

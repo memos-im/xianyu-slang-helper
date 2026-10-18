@@ -101,26 +101,27 @@
   transform: translateY(-1px);
 }
 
-/* 暗语高亮 */
+/* 暗语标记：默认点状虚底下划线，悬浮时再展现微底色，减少视觉干扰 */
 .xy-slang-mark {
-  background: linear-gradient(transparent 60%, #fff2c4 60%);
-  border-bottom: 1px dotted #e6a23c;
+  background: transparent;
+  border-bottom: 1.5px dotted #e6a23c;
   cursor: help;
   padding: 0 1px;
   border-radius: 2px;
+  transition: background-color 0.15s ease;
 }
 
 .xy-slang-mark:hover {
-  background: #fff2c4;
+  background: #fff3d0;
 }
 
-/* 自定义词条 - 蓝色变体 */
+/* 自定义词条：暖色加深标记 */
 .xy-slang-mark-custom {
-  background: linear-gradient(transparent 60%, #d6e4ff 60%);
-  border-bottom: 1px dotted #3b82f6;
+  background: transparent;
+  border-bottom: 1.5px dotted #c8541f;
 }
 .xy-slang-mark-custom:hover {
-  background: #d6e4ff;
+  background: #ffe6d5;
 }
 
 /* Tooltip */

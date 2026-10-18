@@ -1,6 +1,6 @@
 import { browser } from "wxt/browser";
 import { xyDict } from "@/dict/loader";
-import type { BrowseCategory, DictMeta } from "@/dict/types";
+import type { BrowseCategory, DecodeHit, DictMeta, Suggestion } from "@/dict/types";
 
 // Chrome 内置 AI（Gemini Nano）最小类型声明 —— 保持原 popup.js 的调用方式，只做类型化。
 type AiStatus = "available" | "downloadable" | "downloading" | "unavailable";
@@ -83,73 +83,161 @@ const input = el<HTMLTextAreaElement>("translate-input");
 const clearBtn = el<HTMLButtonElement>("clear-btn");
 const resultArea = el<HTMLDivElement>("result-area");
 
+let translateDebounceTimer: number | null = null;
+
+async function performTranslate(text: string, forceDirection?: "to-slang" | "to-normal"): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    resultArea.innerHTML = '<div class="empty-state">输入关键词或粘贴商品文本，自动双向识别</div>';
+    return;
+  }
+
+  // 如果强制指定方向
+  if (forceDirection === "to-slang") {
+    const matches = await xyDict.suggestSlangsFor(trimmed);
+    if (matches.length === 0) {
+      resultArea.innerHTML = renderEmptyWithAI(
+        `词典中没有找到 "${escapeHtml(trimmed)}" 的暗语`,
+        '试试更通用的词，或在"词典"页浏览所有分类',
+        trimmed,
+        "to-slang",
+      );
+      bindAIButton(trimmed, "to-slang");
+      return;
+    }
+    renderSlangMatches(matches);
+    return;
+  }
+
+  if (forceDirection === "to-normal") {
+    const found = await xyDict.decodeText(trimmed);
+    if (found.length === 0) {
+      resultArea.innerHTML = renderEmptyWithAI(
+        "未在文本中检测到已知暗语",
+        "可能是新词或词典暂未收录",
+        trimmed,
+        "to-normal",
+      );
+      bindAIButton(trimmed, "to-normal");
+      return;
+    }
+    renderDecodedMatches(found);
+    return;
+  }
+
+  // 智能双向解析：长句或包含空格标点时优先解读；短词优先正向查暗语，同时互相兜底
+  const isLikelyLongSentence = trimmed.length > 12 || /[\n，。！？,!?]/.test(trimmed);
+  if (isLikelyLongSentence) {
+    const found = await xyDict.decodeText(trimmed);
+    if (found.length > 0) {
+      renderDecodedMatches(found);
+      return;
+    }
+    const matches = await xyDict.suggestSlangsFor(trimmed);
+    if (matches.length > 0) {
+      renderSlangMatches(matches);
+      return;
+    }
+  } else {
+    const matches = await xyDict.suggestSlangsFor(trimmed);
+    if (matches.length > 0) {
+      renderSlangMatches(matches);
+      return;
+    }
+    const found = await xyDict.decodeText(trimmed);
+    if (found.length > 0) {
+      renderDecodedMatches(found);
+      return;
+    }
+  }
+
+  // 两侧都没命中时提供本地 AI 兜底
+  resultArea.innerHTML = renderEmptyWithAI(
+    `词典中未收录 "${escapeHtml(trimmed)}"`,
+    '可点击上方"转暗语"或"解读暗语"单独查询，或在"词典"中浏览',
+    trimmed,
+    "to-slang",
+  );
+  bindAIButton(trimmed, "to-slang");
+}
+
+function renderSlangMatches(matches: Suggestion[]): void {
+  let html = "";
+  for (const { normal, slangs, exact } of matches) {
+    html += `
+        <div class="result-normal">${exact ? "✓ 精确匹配: " : ""}<strong>${escapeHtml(normal)}</strong></div>
+        <div class="result-tags">
+          ${slangs
+            .map(
+              (s) => `
+            <div class="result-tag-wrap">
+              <span class="result-tag" data-copy="${escapeHtml(s)}" title="点击复制">${escapeHtml(s)}</span>
+              <a class="btn-search-goofish" href="https://www.goofish.com/search?q=${encodeURIComponent(s)}" target="_blank" rel="noopener noreferrer" title="去闲鱼搜此暗语">↗</a>
+            </div>`,
+            )
+            .join("")}
+        </div>
+      </div>`;
+  }
+  resultArea.innerHTML = html;
+  bindCopyTags(resultArea, ".result-tag");
+}
+
+function renderDecodedMatches(found: DecodeHit[]): void {
+  let html = "";
+  for (const { slang, meanings } of found) {
+    html += `
+        <div class="result-normal">暗语: <strong>${escapeHtml(slang)}</strong></div>
+        <div class="result-tags">
+          ${meanings
+            .map(
+              (s) => `
+            <div class="result-tag-wrap">
+              <span class="result-tag" data-copy="${escapeHtml(s)}" title="点击复制">${escapeHtml(s)}</span>
+              <a class="btn-search-goofish" href="https://www.goofish.com/search?q=${encodeURIComponent(s)}" target="_blank" rel="noopener noreferrer" title="去闲鱼搜此词">↗</a>
+            </div>`,
+            )
+            .join("")}
+        </div>
+      </div>`;
+  }
+  resultArea.innerHTML = html;
+  bindCopyTags(resultArea, ".result-tag");
+}
+
 input.addEventListener("input", () => {
   clearBtn.style.display = input.value ? "flex" : "none";
+  if (translateDebounceTimer) window.clearTimeout(translateDebounceTimer);
+  translateDebounceTimer = window.setTimeout(() => {
+    void performTranslate(input.value);
+  }, 200);
 });
+
 clearBtn.addEventListener("click", () => {
   input.value = "";
   clearBtn.style.display = "none";
-  resultArea.innerHTML = '<div class="empty-state">输入文本后点击上方按钮</div>';
+  if (translateDebounceTimer) window.clearTimeout(translateDebounceTimer);
+  resultArea.innerHTML = '<div class="empty-state">输入关键词或粘贴商品文本，自动双向识别</div>';
   input.focus();
 });
 
-el<HTMLButtonElement>("btn-to-slang").addEventListener("click", async () => {
+el<HTMLButtonElement>("btn-to-slang").addEventListener("click", () => {
   const text = input.value.trim();
   if (!text) {
     resultArea.innerHTML = '<div class="empty-state">请先输入要转换的关键词</div>';
     return;
   }
-  const matches = await xyDict.suggestSlangsFor(text);
-  if (matches.length === 0) {
-    resultArea.innerHTML = renderEmptyWithAI(
-      `词典中没有找到 "${escapeHtml(text)}" 的暗语`,
-      '试试更通用的词，或在"词典"页浏览所有分类',
-      text,
-      "to-slang",
-    );
-    bindAIButton(text, "to-slang");
-    return;
-  }
-  let html = "";
-  for (const { normal, slangs, exact } of matches) {
-    html += `
-      <div class="result-group">
-        <div class="result-normal">${exact ? "✓ 精确匹配: " : ""}<strong>${escapeHtml(normal)}</strong></div>
-        <div class="result-tags">
-          ${slangs.map((s) => `<span class="result-tag" data-copy="${escapeHtml(s)}">${escapeHtml(s)}</span>`).join("")}
-        </div>
-      </div>`;
-  }
-  resultArea.innerHTML = html;
-  bindCopyTags(resultArea, ".result-tag");
+  void performTranslate(text, "to-slang");
 });
 
-el<HTMLButtonElement>("btn-to-normal").addEventListener("click", async () => {
+el<HTMLButtonElement>("btn-to-normal").addEventListener("click", () => {
   const text = input.value.trim();
   if (!text) {
     resultArea.innerHTML = '<div class="empty-state">请先粘贴要解读的文本</div>';
     return;
   }
-  const found = await xyDict.decodeText(text);
-  if (found.length === 0) {
-    resultArea.innerHTML = renderEmptyWithAI("未在文本中检测到已知暗语", "可能是新词或词典暂未收录", text, "to-normal");
-    bindAIButton(text, "to-normal");
-    return;
-  }
-  let html = "";
-  for (const { slang, meanings } of found) {
-    html += `
-      <div class="result-group">
-        <div class="result-normal">暗语: <strong>${escapeHtml(slang)}</strong></div>
-        <div class="result-tags">
-          ${meanings.map((s) => `<span class="result-tag" data-copy="${escapeHtml(s)}">${escapeHtml(s)}</span>`).join("")}
-        </div>
-      </div>`;
-  }
-  resultArea.innerHTML = html;
-  bindCopyTags(resultArea, ".result-tag");
+  void performTranslate(text, "to-normal");
 });
-
 // ============ Built-in AI fallback ============
 function renderEmptyWithAI(title: string, hint: string, _text: string, _direction: AiDirection): string {
   const base = `

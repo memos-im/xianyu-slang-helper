@@ -48,6 +48,13 @@ export default defineContentScript({
       panel.querySelector(".xy-panel-close")?.addEventListener("click", () => {
         panel.style.display = "none";
       });
+      document.addEventListener("mousedown", (e) => {
+        if (panel.style.display === "none") return;
+        const target = e.target as Node | null;
+        if (target && !panel.contains(target) && (!currentInput || !currentInput.contains(target))) {
+          panel.style.display = "none";
+        }
+      });
       return panel;
     }
 
@@ -95,9 +102,14 @@ export default defineContentScript({
       });
 
       const rect = input.getBoundingClientRect();
+      const minWidth = Math.max(rect.width, 280);
+      let left = window.scrollX + rect.left;
+      const maxLeft = window.scrollX + document.documentElement.clientWidth - minWidth - 12;
+      if (left > maxLeft) left = Math.max(window.scrollX + 12, maxLeft);
+
       searchPanel.style.top = `${window.scrollY + rect.bottom + 6}px`;
-      searchPanel.style.left = `${window.scrollX + rect.left}px`;
-      searchPanel.style.minWidth = `${Math.max(rect.width, 280)}px`;
+      searchPanel.style.left = `${left}px`;
+      searchPanel.style.minWidth = `${minWidth}px`;
       searchPanel.style.display = "block";
     }
 
@@ -212,10 +224,32 @@ export default defineContentScript({
     function showTooltip(target: Element, text: string): void {
       if (!tooltip) tooltip = createTooltip();
       tooltip.textContent = text;
-      const rect = target.getBoundingClientRect();
       tooltip.style.display = "block";
-      tooltip.style.top = `${window.scrollY + rect.top - tooltip.offsetHeight - 8}px`;
-      tooltip.style.left = `${window.scrollX + rect.left}px`;
+      tooltip.style.visibility = "hidden";
+
+      const rect = target.getBoundingClientRect();
+      const tooltipHeight = tooltip.offsetHeight;
+      const tooltipWidth = tooltip.offsetWidth;
+      const viewportWidth = document.documentElement.clientWidth;
+
+      // 上方空间不足时向下翻转
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      let top = window.scrollY + rect.top - tooltipHeight - 8;
+      if (spaceAbove < tooltipHeight + 12 && spaceBelow > spaceAbove) {
+        top = window.scrollY + rect.bottom + 8;
+      }
+
+      // 水平方向视口 clamp 限制
+      let left = window.scrollX + rect.left;
+      const maxLeft = window.scrollX + viewportWidth - tooltipWidth - 12;
+      const minLeft = window.scrollX + 12;
+      if (left > maxLeft) left = maxLeft;
+      if (left < minLeft) left = minLeft;
+
+      tooltip.style.top = `${top}px`;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.visibility = "visible";
     }
 
     function hideTooltip(): void {
