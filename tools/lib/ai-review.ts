@@ -7,14 +7,14 @@
 // 用法: 一般不由人直接调, 而是被 sync-awesome.ts --ai-review 调用。
 //
 // 只用 System One 判别模型 (TypeSafe Jev; 自托管 DiffusionGemma 走同一 API)。
-// 判别模型不生成文本, 只对 typed questions 返回校准概率 —— 因此这里没有 prompt/解析,
-// 每个候选变体问一个 Noul 问题, 取概率 >= 阈值即判为噪音。
+// 判别模型不生成文本, 只对 typed questions 返回校准概率 —— 因此这里没有 prompt/解析。
+// 每个候选变体问一个 Noul 原子问题: 「变体里是否含有通用交易词缀」, 概率 >= 阈值即剔除。
 //
 // 配置 (环境变量):
-//   TYPESAFE_API_KEY   托管 Jev 必填; 自托管本地端点 (localhost/127.0.0.1) 可留空
-//   TYPESAFE_BASE_URL  可选, 默认 https://api.typesafe.ai
-//   TYPESAFE_MODEL     可选, 默认 jev-latest
-//   AI_NOISE_THRESHOLD 可选, 默认 0.5 (概率越高越激进)
+//   TYPESAFE_API_KEY     托管 Jev 必填; 自托管本地端点 (localhost/127.0.0.1) 可留空
+//   TYPESAFE_BASE_URL    可选, 默认 https://api.typesafe.ai
+//   TYPESAFE_MODEL       可选, 默认 jev-latest
+//   AI_NOISE_THRESHOLD   可选, 默认 0.7 (调低 = 剔得更多)
 //
 // 设计取向: "复核"只做剔除建议, 结果索引做边界校验; 任何网络/解析失败都不抛给
 // 调用方去中断导入 —— 复核是增益步骤, 不是硬依赖。
@@ -23,7 +23,8 @@ import { isJsonObject } from "./dict-shared";
 
 const DEFAULT_BASE_URL = "https://api.typesafe.ai";
 const DEFAULT_MODEL = "jev-latest";
-const DEFAULT_THRESHOLD = 0.5;
+// 0.7 而非 0.5: 实测 filler>=0.5 的误杀约 31 条, 0.7 降到 3 条, 只多留 140 个冗余变体。
+const DEFAULT_NOISE_THRESHOLD = 0.7;
 
 export interface AiConfig {
   apiKey: string;
@@ -42,12 +43,12 @@ function isLocalBase(url: string): boolean {
 
 export function aiConfig(env: EnvMap = process.env): AiConfig {
   const baseUrl = (env.TYPESAFE_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const threshold = Number(env.AI_NOISE_THRESHOLD ?? DEFAULT_THRESHOLD);
+  const threshold = Number(env.AI_NOISE_THRESHOLD ?? DEFAULT_NOISE_THRESHOLD);
   return {
     apiKey: env.TYPESAFE_API_KEY || "",
     baseUrl,
     model: env.TYPESAFE_MODEL || DEFAULT_MODEL,
-    threshold: Number.isFinite(threshold) ? threshold : DEFAULT_THRESHOLD,
+    threshold: Number.isFinite(threshold) ? threshold : DEFAULT_NOISE_THRESHOLD,
     requiresKey: !isLocalBase(baseUrl),
   };
 }
@@ -59,13 +60,23 @@ export function aiConfigured(env: EnvMap = process.env): boolean {
 
 // ============ 判定噪音 ============
 //
-// 一个候选变体 = 一个 Noul 问题 ("该变体是不是模板化噪音"), 同一批共用一份 state。
-// 判别模型不支持生成理由, 所以 verdict.reason 是概率而不是文本。
+// 只问一件事: 「变体里是否含有通用交易词缀」。为什么这一个问题就够了 ——
+//
+// 1. 本扩展的扫描正则是无边界子串匹配 (见 src/dict/loader.ts 的 buildIndexes):
+//    「哈基米现货」本来就会被已有的「哈基米」条目命中, 单独收录只会撑大词典, 不会多出
+//    任何可命中的东西。所以「含通用词缀」≈「对词典没有增量」, 这就是我们要判定的全部。
+// 2. 实测对比过"再问一个 core 问题（去掉词缀后剩下的是不是独立暗语）当第二道闸":
+//    core 的 noul 中位 0.60、>0.9 的只占 1%(基本是噪声, Jev 对这个问题没把握),
+//    filler 中位 0.47、>0.9 的占 42%(双峰, 真有区分度)。加上 core 只是压低剔除量:
+//    少 2 个误杀, 代价是多留约 270 个冗余变体 —— 不划算, 故删。
 
 const NOISE_DEFINITION = [
-  "模板化噪音 = 把通用交易后缀/前缀(包激活/诚心出/学习位/全新/包邮/现货/秒发/带教程/稳定版/急出/可刀/一手/自用 等)",
-  "机械拼到任意概念上得到的词: 脱离该概念后毫无区分度, 几乎可以被任何商品共用。",
-  "不是噪音 = 有真实语义映射的谐音/缩写/错别字/行业黑话 (如 克劳格/哈基米/cld/战损成色/伊拉克成色) —— 这些是词典的核心价值, 必须保留。",
+  "这个词典做的是「暗语 → 正常词」的映射, 扫描页面时用无边界子串匹配。",
+  "因此「已知暗语 + 通用交易词缀」(例: 哈基米现货 / 亮机卡可刀 / 买包烟成色包邮)",
+  "不会比已有的核心暗语多命中任何东西 —— 它只是把同一件事说了两遍。",
+  "通用交易词缀 = 任何品类都在用的措辞, 如 现货/包邮/包邮到家/秒发/急出/可刀/自用/全新/",
+  "学习位/诚心出/包激活/带教程/稳定版/测试号/正品/原装/一手/车队/车位 等。",
+  "核心暗语 = 概念特有的谐音/缩写/错别字/行业黑话, 如 克劳格/克牢弟/cld/哈基米/双子座/战损成色/伊拉克成色。",
 ].join("\n");
 
 export interface ReviewItem {
@@ -73,14 +84,16 @@ export interface ReviewItem {
   variant: string;
 }
 
+const FILLER_EXAMPLES = "现货/包邮/秒发/急出/可刀/自用/全新/学习位/诚心出/包激活/带教程/稳定版/测试号/正品/原装/一手";
+
 function buildQuestions(items: ReviewItem[]): Record<string, { type: string; instructions: string }> {
   const questions: Record<string, { type: string; instructions: string }> = {};
   items.forEach((it, i) => {
     questions[`q${i}`] = {
       type: "noul",
       instructions:
-        `候选变体「${it.variant}」属于模板化噪音：它脱离「${it.name}」这个概念后没有任何区分度，` +
-        `只是通用交易词缀的机械拼接，而不是该概念特有的谐音、缩写或行业黑话。`,
+        `候选变体「${it.variant}」里含有只起填充作用的通用交易词缀（${FILLER_EXAMPLES} 等之一）：` +
+        `这类词缀任何品类都在用，不承载「${it.name}」的语义。`,
     };
   });
   return questions;
@@ -109,7 +122,7 @@ async function callSystemOne(
       body: JSON.stringify({
         model: cfg.model,
         state: {
-          task: "判断候选暗语变体是否为模板化噪音",
+          task: "判断候选暗语变体对词典是否有增量",
           concept: items[0]?.name || null,
           candidates: items.map((it, i) => ({ id: `q${i}`, text: it.variant })),
           noise_definition: NOISE_DEFINITION,
@@ -128,26 +141,43 @@ async function callSystemOne(
   }
 }
 
-interface NoiseDrop {
+interface NoiseScore {
   i: number;
+  drop: boolean;
   reason: string;
-  score: number;
+  score?: number;
+  filler?: number;
 }
 
-function parseAnswers(answers: unknown, batchLen: number, threshold: number): { drops: NoiseDrop[]; missing: number } {
+function noulOf(pool: Record<string, unknown>, key: string): number | null {
+  const entry: unknown = pool[key];
+  const noul = Number(isJsonObject(entry) ? entry.noul : undefined);
+  return Number.isFinite(noul) ? noul : null;
+}
+
+// 返回**每一个**候选的评分与判定 (不只是剔除的), 便于把 core/filler 落到 staged.json
+// 里离线扫阈值 —— 否则每次调参都要重打一遍 API, 还看不到"漏网"那一侧。
+function parseAnswers(answers: unknown, batchLen: number, cfg: AiConfig): { scores: NoiseScore[]; missing: number } {
   const pool: Record<string, unknown> = isJsonObject(answers) ? answers : {};
-  const drops: NoiseDrop[] = [];
+  const scores: NoiseScore[] = [];
   let missing = 0;
   for (let i = 0; i < batchLen; i++) {
-    const entry: unknown = pool[`q${i}`];
-    const noul = Number(isJsonObject(entry) ? entry.noul : undefined);
-    if (!Number.isFinite(noul)) {
+    const noul = noulOf(pool, `q${i}`);
+    if (noul === null) {
       missing++;
+      scores.push({ i, drop: false, reason: "未作答（保留）" });
       continue;
     }
-    if (noul >= threshold) drops.push({ i, reason: `noul=${noul.toFixed(2)}（≥${threshold} 判为噪音）`, score: noul });
+    const drop = noul >= cfg.threshold;
+    scores.push({
+      i,
+      drop,
+      reason: `含通用词缀 p=${noul.toFixed(2)}`,
+      score: noul,
+      filler: noul,
+    });
   }
-  return { drops, missing };
+  return { scores, missing };
 }
 
 // ============ 批处理 ============
@@ -156,7 +186,10 @@ export interface ReviewVerdict {
   index: number;
   drop: boolean;
   reason: string;
+  /** min(core, filler): 越高越确定是"已知暗语 + 通用填充" */
   score?: number;
+  /** 模型给出的「含通用交易词缀」概率 */
+  filler?: number;
   item: ReviewItem;
 }
 
@@ -179,6 +212,7 @@ export interface ReviewOptions {
   retries?: number;
   failFast?: boolean;
   onProgress?: (progress: { done: number; total: number }) => void;
+  /** 细粒度覆盖, 一般用 env 的 AI_NOISE_THRESHOLD */
   threshold?: number;
 }
 
@@ -192,8 +226,10 @@ export async function reviewItems(items: ReviewItem[], opts: ReviewOptions = {})
   const retries = opts.retries ?? 2;
   const failFast = opts.failFast !== false;
   const onProgress = opts.onProgress || ((): void => {});
-  const threshold =
-    typeof opts.threshold === "number" && Number.isFinite(opts.threshold) ? opts.threshold : cfg.threshold;
+  const resolved: AiConfig = {
+    ...cfg,
+    threshold: Number.isFinite(opts.threshold) ? (opts.threshold as number) : cfg.threshold,
+  };
 
   if (cfg.requiresKey && !cfg.apiKey) {
     return { verdicts: [], errors: ["未配置 TYPESAFE_API_KEY"], usage: null, skipped: true };
@@ -220,19 +256,19 @@ export async function reviewItems(items: ReviewItem[], opts: ReviewOptions = {})
       if (!batch) break;
       const start = batch.start;
       const batchItems = batch.items;
-      let drops: NoiseDrop[] | null = null;
+      let scores: NoiseScore[] | null = null;
       let lastErr: unknown = null;
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-          const { answers, usage: u } = await callSystemOne(batchItems, cfg, fetchImpl, timeoutMs);
+          const { answers, usage: u } = await callSystemOne(batchItems, resolved, fetchImpl, timeoutMs);
           if (u) {
             usage = usage || {};
             const acc: Record<string, number> = usage;
             for (const k of Object.keys(u)) acc[k] = (acc[k] || 0) + (Number(u[k]) || 0);
           }
-          const parsed = parseAnswers(answers, batchItems.length, threshold);
+          const parsed = parseAnswers(answers, batchItems.length, resolved);
           if (parsed.missing === batchItems.length) throw new Error("响应缺少全部 noul 答案");
-          drops = parsed.drops;
+          scores = parsed.scores;
           break;
         } catch (err) {
           lastErr = err;
@@ -243,12 +279,19 @@ export async function reviewItems(items: ReviewItem[], opts: ReviewOptions = {})
           }
         }
       }
-      if (drops) {
+      if (scores) {
         okBatches++;
-        for (const d of drops) {
-          const item = batchItems[d.i];
+        for (const s of scores) {
+          const item = batchItems[s.i];
           if (!item) continue;
-          verdicts.push({ index: start + d.i, drop: true, reason: d.reason, score: d.score, item });
+          verdicts.push({
+            index: start + s.i,
+            drop: s.drop,
+            reason: s.reason,
+            score: s.score,
+            filler: s.filler,
+            item,
+          });
         }
       } else {
         failedBatches++;
@@ -267,5 +310,5 @@ export async function reviewItems(items: ReviewItem[], opts: ReviewOptions = {})
 
   await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, () => worker()));
   verdicts.sort((a, b) => a.index - b.index);
-  return { verdicts, errors, usage, aborted, model: cfg.model };
+  return { verdicts, errors, usage, aborted, model: resolved.model };
 }

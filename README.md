@@ -144,7 +144,24 @@ bun run release:build
 
 政策分两档（`tools/lib/dict-shared.ts`）：**HARD**（色情/毒品/武器/赌博/盗号/涉未成年等违法题材）一律排除；**GREY**（高仿假货/黄牛代抢/引流养号/社保代缴/活体宠物等商店政策灰色题材）**默认写入**并单独报告——合并 PR 时请确认过审风险可接受，介意可用 `--deny-grey`。
 
-追加 `--ai-review` 可用 **TypeSafe System One 判别模型**（[Jev](https://docs.typesafe.ai)；自托管 DiffusionGemma 同 API）剔除上游的"模板化噪音"变体：每个候选变体问一个 `Noul`（是/否）问题，取概率 ≥ 阈值判为噪音，不生成文本、无解析、返回校准概率。环境变量 `TYPESAFE_API_KEY`（本地端点可空）/ `TYPESAFE_BASE_URL` / `TYPESAFE_MODEL` / 阈值 `AI_NOISE_THRESHOLD`（默认 0.5）。未配置 key 时自动降级跳过，不阻断同步。
+追加 `--ai-review` 可用 **TypeSafe System One 判别模型**（[Jev](https://docs.typesafe.ai)；自托管 DiffusionGemma 同 API）剔除上游的"模板化噪音"变体：每个候选变体问一个 `Noul`（是/否）问题，取概率 ≥ 阈值判为噪音，不生成文本、无解析、返回校准概率。未配置 key 时自动降级跳过，不阻断同步。
+
+**key 填在哪**（取 key：<https://console.typesafe.ai/keys>）：
+
+```bash
+cp .env.example .env      # 然后填 TYPESAFE_API_KEY=...
+```
+
+Bun 会自动加载 `.env`（无需 dotenv 依赖），`bun run` 的脚本、直接 `bun run tools/…` 都读得到。注意**已 `export` 的环境变量优先于文件**。其他相关变量（都有默认值）：
+
+| 变量                 | 默认                      | 说明                                                |
+| -------------------- | ------------------------- | --------------------------------------------------- |
+| `TYPESAFE_API_KEY`   | —                         | 托管 Jev 必填；本地端点可空                         |
+| `TYPESAFE_BASE_URL`  | `https://api.typesafe.ai` | 自托管 DiffusionGemma 填本地/隧道地址               |
+| `TYPESAFE_MODEL`     | `jev-latest`              |                                                     |
+| `AI_NOISE_THRESHOLD` | `0.7`                     | 变体「含通用交易词缀」概率 ≥ 阈值即剔除；调低更激进 |
+
+CI 里走仓库 Secret `TYPESAFE_API_KEY`（`sync-slang.yml` 已接好）。
 
 合并后跑 `bun run dict:audit` 审计误报。发版仍需人工 bump `package.json` 版本并打 tag。
 

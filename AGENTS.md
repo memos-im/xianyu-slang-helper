@@ -149,10 +149,20 @@ AES-256-GCM，密钥由 PBKDF2-SHA256（100k 轮，固定 salt）派生。**口�
 这些词会造成灾难级误报。`--include-risky` 可放行。
 
 **System One 复核**（`tools/lib/ai-review.ts`）— `--ai-review` 用 TypeSafe **Jev** 判别模型
-（不生成文本，返回校准概率；自托管 DiffusionGemma 同 API）剔除"模板化噪音"（把 `包激活`/
-`诚心出` 这类通用后缀机械拼到概念上）。每个候选变体一个 `Noul` 问题，同批共用 `state`，
-`noul >= AI_NOISE_THRESHOLD`（默认 0.5）即剔除。env：`TYPESAFE_API_KEY`（本地端点可空）/
-`TYPESAFE_BASE_URL` / `TYPESAFE_MODEL`。失败不阻断导入。
+（不生成文本，返回校准概率；自托管 DiffusionGemma 同 API）剔除"对词典没有增量"的变体。
+
+判定只问一个原子问题：**「变体里是否含有通用交易词缀」**（现货/包邮/秒杀/学习位/诚心出…），
+`noul ≥ AI_NOISE_THRESHOLD`（默认 0.7）即剔除。
+
+为什么一个问题就够：扫描用**无边界子串匹配**（`src/dict/loader.ts` 的 `buildIndexes`），
+`哈基米现货` 本来就会被已有的 `哈基米` 命中 —— 含通用词缀 ≈ 对词典没有增量。
+
+> 试过再加一个 `core` 问题（「去掉词缀后剩下的是不是独立暗语」）当第二道闸，实测不划算并已删除：
+> `core` 的 noul 中位 0.60、>0.9 仅 1%（Jev 对这个问题没把握），`filler` 中位 0.47、>0.9 占 42%。
+> 加上 `core` 只换来少 2 个误杀，代价是多留约 270 个冗余变体。
+
+同批共用 `state`，env 还支持 `TYPESAFE_API_KEY`（本地端点可空）/ `TYPESAFE_BASE_URL` /
+`TYPESAFE_MODEL`。失败不阻断导入。
 
 新概念统一落在 `社区补充` 分类（上游分类体系与本扩展分类未一一对应），供人工细分。
 `.github/workflows/sync-slang.yml` 每周一自动跑两个源并开 PR；它不推主干、不发版。

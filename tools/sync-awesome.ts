@@ -371,6 +371,15 @@ function printReport(result: AwesomeResult, applied: boolean): void {
 
 // ============ AI 复核: 剔除模板化噪音 ============
 // 返回 [{ name, variant, reason, scope }]; 失败时返回 [] 并打印告警 (不阻断导入).
+interface AiScoredVariant {
+  scope: string;
+  name: string;
+  variant: string;
+  /** 模型给出的「含通用交易词缀」概率 */
+  filler?: number;
+  drop: boolean;
+}
+
 interface AiDroppedVariant {
   scope: string;
   name: string;
@@ -379,15 +388,15 @@ interface AiDroppedVariant {
   score?: number;
 }
 
-async function runAiReview(result: AwesomeResult): Promise<AiDroppedVariant[]> {
+async function runAiReview(result: AwesomeResult): Promise<{ dropped: AiDroppedVariant[]; scored: AiScoredVariant[] }> {
   if (!aiConfigured()) {
     console.warn(
       "⚠️  --ai-review 已指定, 但未配置 TYPESAFE_API_KEY —— 跳过 AI 复核 (自托管本地端点可用 TYPESAFE_BASE_URL 免鉴权)",
     );
-    return [];
+    return { dropped: [], scored: [] };
   }
   const cfg = aiConfig();
-  console.log(`  AI 复核: ${cfg.model} @ ${cfg.baseUrl} (阈值 ${cfg.threshold})`);
+  console.log(`  AI 复核: ${cfg.model} @ ${cfg.baseUrl} (含通用词缀概率 ≥${cfg.threshold} 即剔除)`);
   const items: Array<{ name: string; variant: string }> = [];
   const scopes: Array<{ scope: string; name: string }> = [];
   for (const e of result.newEntries) {
@@ -402,7 +411,7 @@ async function runAiReview(result: AwesomeResult): Promise<AiDroppedVariant[]> {
       scopes.push({ scope: "existing", name: e.existingNormal });
     }
   }
-  if (!items.length) return [];
+  if (!items.length) return { dropped: [], scored: [] };
 
   let last = 0;
   const { verdicts, errors, usage, aborted } = await reviewItems(items, {
@@ -416,10 +425,18 @@ async function runAiReview(result: AwesomeResult): Promise<AiDroppedVariant[]> {
   process.stdout.write("\n");
 
   const dropped: AiDroppedVariant[] = [];
+  const scored: AiScoredVariant[] = [];
   for (const v of verdicts) {
     const scope = scopes[v.index];
     const item = items[v.index];
     if (!scope || !item) continue;
+    scored.push({
+      ...scope,
+      variant: item.variant,
+      drop: v.drop,
+      ...(v.filler != null ? { filler: v.filler } : {}),
+    });
+    if (!v.drop) continue;
     dropped.push({
       ...scope,
       variant: item.variant,
@@ -451,7 +468,7 @@ async function runAiReview(result: AwesomeResult): Promise<AiDroppedVariant[]> {
   result.stats.variantsAddedNew = result.newEntries.reduce((s, e) => s + e.variants.length, 0);
   result.stats.variantsAddedToExisting = result.newVariantsForExisting.reduce((s, e) => s + e.newVariants.length, 0);
   result.stats.variantsDroppedAi = dropped.length;
-  return dropped;
+  return { dropped, scored };
 }
 
 // ============ 主流程 ============
@@ -464,7 +481,7 @@ async function main(): Promise<void> {
   const dataset = await fetchDataset();
   const result = categorize(dataset.entries, source);
 
-  const aiDropped = AI_REVIEW ? await runAiReview(result) : [];
+  const ai = AI_REVIEW ? await runAiReview(result) : { dropped: [], scored: [] };
 
   const staged = {
     fetchedAt: new Date().toISOString(),
@@ -483,7 +500,9 @@ async function main(): Promise<void> {
     filteredForPolicy: result.filteredForPolicy,
     policyFlagged: result.policyFlagged,
     riskyVariants: result.riskyVariants,
-    aiDropped,
+    aiDropped: ai.dropped,
+    // 全部候选的 core/filler 评分（含保留的）: 用来离线扫阈值, 不必反复打 API
+    aiScored: ai.scored,
   };
   writeFileSync(STAGED_PATH, JSON.stringify(staged, null, 2) + "\n", "utf8");
 
