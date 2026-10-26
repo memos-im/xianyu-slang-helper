@@ -1,0 +1,193 @@
+================ 词典误报与冲突审计报告 ================
+统计: 22 个分类 | 516 个概念 | 3929 个暗语变体
+
+🚨 【高危】单字符暗语 (36 个):
+   问题：当前正则为全局匹配，任何包含该字的商品标题都会被错误高亮！
+   - '灯' -> 高松灯 [anime-goods]
+   - '农' -> 王者荣耀 [games]
+   - '叩' -> 原神 [games]
+   - 'V' -> 微信 [transaction]
+   - '攻' -> 1 [community]
+   - '毛' -> gemini pro [community]
+   - 'x' -> X [community]
+   - '推' -> X [community]
+   - '叉' -> X [community]
+   - '发' -> X [community]
+   - '哇' -> 余承东 [community]
+   - '给' -> gay [community]
+   - '¥' -> 人民币¥ [community]
+   - '米' -> 人民币¥ [community]
+   - 'r' -> 人民币¥ [community]
+   - 'C' -> 人民币¥ [community]
+   - 'U' -> 虚拟货币 [community]
+   - '矿' -> 虚拟货币 [community]
+   - '油' -> 虚拟货币 [community]
+   - '钱' -> 虚拟货币 [community]
+   - '盒' -> 开户 [community]
+   - '润' -> 移民 [community]
+   - '糖' -> 雌二醇 [community]
+   - '粥' -> 三角洲 [community]
+   - '△' -> 三角洲 [community]
+   - '私' -> 私信 [community]
+   - '厮' -> 私信 [community]
+   - '典' -> 圣经 [community]
+   - '冲' -> rush [community]
+   - '糖' -> 补佳乐 [community]
+   - '米' -> 钱 [community]
+   - 'r' -> 钱 [community]
+   - '色' -> 色普龙 [community]
+   - '酒' -> 8+1 [community]
+   - '9' -> 8+1 [community]
+   - '谁' -> 海康威视 [community]
+
+⚠️  【高危】通用日常词碰撞 (19 个):
+   问题：日常商品词，极易产生假阳性高亮
+   - '卫星' -> 微信 [transaction]
+   - '攻' -> 1 [community]
+   - '推' -> X [community]
+   - '米' -> 人民币¥ [community]
+   - '坐牢' -> 上班 [community]
+   - '打工' -> 上班 [community]
+   - '粥' -> 三角洲 [community]
+   - '路由器' -> 游戏机 [community]
+   - '真理' -> 枪 [community]
+   - '高尔夫' -> 美国末日2 [community]
+   - '好女孩' -> 租借女友 [community]
+   - '水果' -> 苹果 [community]
+   - '典' -> 圣经 [community]
+   - '大果' -> 槟榔 [community]
+   - '米' -> 钱 [community]
+   - '群主' -> Takotsubo [community]
+   - '酒' -> 8+1 [community]
+   - '谁' -> 海康威视 [community]
+   - '黑洞' -> 引导 [community]
+
+⚠️  【中危】短字母/拼音缩写 (100 个):
+   问题：英文大小写不敏感且无单词边界时，易命中其他单词子串
+   - 'ip' -> iPhone [electronics]
+   - 'mt' -> Mate [electronics]
+   - 'vv' -> vivo [electronics]
+   - 'ns' -> Switch [electronics]
+   - 'p5' -> PS5 [electronics]
+   - 'ap' -> AirPods [electronics]
+   - 'a73' -> 索尼 a7m3 [electronics]
+   - 'a3' -> 索尼 a7m3 [electronics]
+   - 'GG' -> Gucci [luxury]
+   - 'rlx' -> Rolex [luxury]
+   - 'pp' -> 百达翡丽 [luxury]
+   - 'zh' -> 中华 [tobacco-alcohol]
+   - 'ht' -> 和天下 [tobacco-alcohol]
+   - 'hhl' -> 黄鹤楼 [tobacco-alcohol]
+   - 'wly' -> 五粮液 [tobacco-alcohol]
+   - 'lf' -> 拉菲 [tobacco-alcohol]
+   - 'yz' -> Yeezy [sneakers]
+   - 'dk' -> Dunk [sneakers]
+   - 'sup' -> Supreme [sneakers]
+   - 'ow' -> Off-White [sneakers]
+   - 'zp' -> 正品 [sneakers]
+   - 'lbb' -> Labubu [toys]
+   - 'mly' -> Molly [toys]
+   - 'sp' -> Skullpanda [toys]
+   - 'dm' -> Dimoo [toys]
+   - 'xdl' -> 星黛露 [toys]
+   - 'mh' -> 盲盒 [toys]
+   - 'set' -> 一整套周边 [anime-goods]
+   - 'mha' -> 我的英雄学院 [anime-goods]
+   - 'ys' -> 原神 [games]
+   - 'op' -> 原神 [games]
+   - 'bh' -> 崩坏 [games]
+   - 'lol' -> 英雄联盟 [games]
+   - 'ST' -> Steam [games]
+   - 'bf4' -> 战地4 [games]
+   - 'WT' -> 战争雷霆 [games]
+   - 'go' -> CS2 [games]
+   - 'sky' -> 光遇 [games]
+   - 'zzz' -> 绝区零 [games]
+   - 'ZZZ' -> 绝区零 [games]
+   - '506' -> 荒野乱斗 [games]
+   - 'cc' -> Claude / Anthropic 账号 [ai-services]
+   - 'cld' -> Claude / Anthropic 账号 [ai-services]
+   - 'GPT' -> ChatGPT / OpenAI Plus [ai-services]
+   - 'gpt' -> ChatGPT / OpenAI Plus [ai-services]
+   - '4o' -> ChatGPT / OpenAI Plus [ai-services]
+   - 'o1' -> ChatGPT / OpenAI Plus [ai-services]
+   - 'o3' -> ChatGPT / OpenAI Plus [ai-services]
+   - 'oai' -> ChatGPT / OpenAI Plus [ai-services]
+   - 'MJ' -> Midjourney 图像生成 [ai-services]
+   - 'xAI' -> Grok (xAI) [ai-services]
+   - 'xai' -> Grok (xAI) [ai-services]
+   - 'qx' -> 全新未拆封 [condition]
+   - 'es' -> 二手 [condition]
+   - 'fk' -> 高仿/复刻 [condition]
+   - 'GF' -> 高仿/复刻 [condition]
+   - 'wx' -> 微信 [transaction]
+   - 'vx' -> 微信 [transaction]
+   - 'V' -> 微信 [transaction]
+   - 'zfb' -> 支付宝 [transaction]
+   - 'qaq' -> QQ [transaction]
+   - 'wtb' -> 求购 [transaction]
+   - 'by' -> 包邮 [transaction]
+   - 'mj' -> 面交 [transaction]
+   - 'cg' -> 炒货(黄牛货) [transaction]
+   - 'yj' -> 原价 [transaction]
+   - 'SP' -> 稀有/隐藏卡 [trading-cards]
+   - 'SSR' -> 稀有/隐藏卡 [trading-cards]
+   - 'ms' -> 微软 [internet]
+   - '403' -> 谷歌 [internet]
+   - 'NF' -> Netflix [internet]
+   - 'tg' -> Telegram [internet]
+   - 'TOP' -> 1 [community]
+   - 'cdx' -> gpt [community]
+   - 'kyc' -> Claude [community]
+   - 'x' -> X [community]
+   - 'ppt' -> chatgpt [community]
+   - 'r' -> 人民币¥ [community]
+   - 'CNY' -> 人民币¥ [community]
+   - 'RMB' -> 人民币¥ [community]
+   - 'C' -> 人民币¥ [community]
+   - 'CNH' -> 人民币¥ [community]
+   - 'U' -> 虚拟货币 [community]
+   - 'E2' -> 雌二醇 [community]
+   - 'BTC' -> 比特币 [community]
+   - '98' -> 僄倡 [community]
+   - 'pc' -> 僄倡 [community]
+   - 'ima' -> gpt-image-2 [community]
+   - 'pr' -> 普瑞巴林 [community]
+   - 'tel' -> 手机号 [community]
+   - 'r' -> 钱 [community]
+   - 'rmb' -> 钱 [community]
+   - 'Cs' -> 铯 [community]
+   - 'WA' -> whatsapp [community]
+   - 'id' -> 身份证 [community]
+   - '48' -> 陈泽彬 [community]
+   - 'mc' -> MC玩家 [community]
+   - 'bwd' -> bvvd [community]
+   - 'MC' -> Minecraft [community]
+   - '9' -> 8+1 [community]
+
+⚠️  【冲突】重复暗语映射 (23 个):
+   - 'c0dex' 同时映射到: gpt(community) VS chatgpt(community)
+   - '缇宝' 同时映射到: gpt(community) VS chatgpt(community)
+   - '天才程序员' 同时映射到: gpt(community) VS chatgpt(community)
+   - '缇宝' 同时映射到: gpt(community) VS chatgpt代充(community)
+   - '天才程序员' 同时映射到: gpt(community) VS chatgpt代充(community)
+   - 'Tibo' 同时映射到: gpt(community) VS chatgpt代充(community)
+   - '普拉斯' 同时映射到: gpt(community) VS chatgpt代充(community)
+   - 'A\' 同时映射到: Claude(community) VS Anthropic(community)
+   - '界是什么车' 同时映射到: 华为汽车(internet) VS 问界(community)
+   - '佛跳墙' 同时映射到: vpn(community) VS shadowrocket(community)
+   - '猴王' 同时映射到: 小米(electronics) VS 雷军(community)
+   - '绿化带战神' 同时映射到: 小米(electronics) VS 雷军(community)
+   - '真诚王' 同时映射到: 小米(electronics) VS 雷军(community)
+   - '南通' 同时映射到: gay(community) VS 男同/耽美/BL(community)
+   - 'Tibo' 同时映射到: gpt(community) VS gpt 会员(community)
+   - 'tibo' 同时映射到: chatgpt(community) VS codex(community)
+   - '糖' 同时映射到: 雌二醇(community) VS 补佳乐(community)
+   - '补子' 同时映射到: 雌二醇(community) VS 补佳乐(community)
+   - '米' 同时映射到: 人民币¥(community) VS 钱(community)
+   - 'r' 同时映射到: 人民币¥(community) VS 钱(community)
+   - '东京美食家' 同时映射到: 东京喰种(community) VS 东京食尸鬼(community)
+   - '苹果账号' 同时映射到: apple id(community) VS 苹果id(community)
+   - '战犯' 同时映射到: 钢铁雄心4(games) VS P社(community)
+
+========================================================
