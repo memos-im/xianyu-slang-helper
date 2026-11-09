@@ -1,0 +1,92 @@
+抓取 https://raw.githubusercontent.com/Domainsun/awesome-chinese-secondhand-slang/main/data/slang-dictionary.json ...
+
+============== Awesome-Slang 同步报告 ==============
+数据源            : https://raw.githubusercontent.com/Domainsun/awesome-chinese-secondhand-slang/main/data/slang-dictionary.json
+条目总数          : 149
+新概念 (待归类)    : 25   (变体 157)
+给已有词条补变体    : 107 个词条 / 1963 个变体
+本地已收录(跳过)   : 11 个条目  / 变体去重跳过 2788 个
+风险变体剔除       : 10 个  (单字/短缩写/日常词)
+政策 HARD 排除     : 6 个条目  (违法题材)
+政策 GREY 放行     : 22 个条目  (假货/黄牛/引流等, 默认写入, 发布前留意商店政策)
+AI 复核剔除        : 0 个模板化噪音变体
+
+  被 HARD 政策档排除的条目 (违法题材, 人工复核):
+    [色情/特殊服务] 女生自用 (二手贩子包装套路)  女生自用包邮、美女自用手机、美女一手自用独享、美女一手自用
+    [色情/特殊服务] 同城喝茶与擦边涉黄陷阱 (喝茶/品茶/同城约聊/定金敲诈)  约、yue、约炮、同城约
+    [色情/特殊服务] 自行车与捷安特 (公路车二手溢价 / 骑行伴游 / 翻墙自建车队借代)  自行车、捷安特、自行车座、公路车
+    [色情/特殊服务] 洗浴会所数字黑话与高端伴游骗局 (92/95/98 涉黄切口 / 商务伴游定金杀猪盘)  91、92、95、98
+    [盗号/洗钱/黑产] 话费与电费慢充折扣代充 (黑灰产洗钱赃款 / 72小时到账 / 涉案停机断卡风险)  话费、电费、话费慢充、电费慢充
+    [色情/特殊服务] 原味二手衣物与情趣用品暗号 (原味 / QQNY / 女生自用穿过 / 涉黄擦边引流)  原味、yuan'wei、yuan、QQNY
+
+  政策 GREY 档放行的条目 (已/将写入, 发布前留意 Chrome Web Store 内容政策):
+    [假货/仿品] 苹果官方小白盒官翻/官换机  苹果小白盒现货、小白盒车位、小白盒包激活、小白盒带教程
+    [假货/仿品] 爱思全绿 / 沙漏全绿验机欺骗  沙漏全五星、全绿可刀、全绿正品、爱思无拆报告
+    [假货/仿品] 换外屏 / 后压盖板与压排屏幕  后压屏现货、后压屏带教程、外屏微裂换盖板、后压屏包邮
+    [黑产工具/批量养号] 站外私聊引流微信 (脱离平台保护/高危诈骗)  加V聊、VX详谈、私下V学习位、看头像右上角
+    [违禁品/医疗减肥] 体重管理 / 掉称 / 甩肉 (代替违禁医疗减肥词)  轻态生活、身材管理、掉称、掉称独享
+    [假货/仿品] 纯原 / 公司级 / 厂货 (球鞋高仿假鞋代称)  过验版本、莞顶纯原、原厂辅料、纯原包激活
+    [假货/仿品] 名表水鬼 / 劳力士潜航者二手与复刻  C厂、单表无盒、水鬼自用、水鬼可刀
+    [黑产工具/批量养号] 自媒体批量涨粉与协议号云控  引流脚本包邮到家、引流脚本包更、引流脚本防封版、引流脚本包邮
+    [黄牛/代抢实名] 演唱会门票 / 强实名录入黄牛代抢  内场前排、黄牛票带原盒、内场邀请函、黄牛票学习位
+    [假货/仿品] 翡翠危地马拉料冒充缅甸老坑翡翠  缅甸老坑测试号、缅甸老坑三包全、缅甸老坑包邮、缅甸老坑包邮到家
+    [黑产工具/批量养号] 自媒体短视频批量去重与矩阵养号  批量去重包更、短视频去水印全新、批量去重诚心出、批量去重直充
+    [假货/仿品] 纯原 / 公司级 (莆田高仿代号)  过验级纯原、L版纯原、公司级全新、纯原包激活
+    [假货/仿品] 散件裁片拼接 (真底假面套路)  裁片鞋急出、裁片鞋满血、裁片鞋稳定版、裁片鞋包邮到家
+    [假货/仿品] 原厂流出 / 代工老鼠货 (虚构渠道骗局)  免税流出、渠道货急出、渠道货不墨迹、代工厂尾单
+    [黑产工具/批量养号] 科技初始号 (外挂封号潜伏期)  科技号原装、科技号秒发、科技号现货、科技号自用
+    [假货/仿品] 潮流限量球鞋与正品过验  过验保真、大厂过验、原盒方正、鞋头无折痕
+    [违禁品/医疗减肥] 社保代缴与公积金挂靠咨询 (断缴补缴 / 积分落户 / 购房资格)  社保、sb代交、代缴sb、sb咨询
+    [黑产工具/批量养号] OpenAI Codex / GitHub Copilot / Cursor AI 编程助手  codex、Codex、CODEX、代码助手
+    [违禁品/医疗减肥] 宠物活体与有偿领养 (猫狗异宠 / 活体发货 / 星期宠规避)  动物、领养、免费领养、有偿领养
+    [黑产工具/批量养号] 多卡宝 / 短信猫池 / 批量插卡排插 (短信中继器 / 物联卡卡槽 / 挂机充电设备)  插座、插线板、插排、二手插座
+    [违禁品/医疗减肥] 海外账户 KYC 身份认证与人脸活体辅助 (Singpass / 交易所 / 海外券商 IBKR / AI 开发者实名)  kyc、KYC、claude kyc、singpass
+    [黑产工具/批量养号] Telegram 纸飞机成品号与海外接码注册 (TG 直登号 / +888 靓号)  纸飞机、纸飞机小助手、灰机号、蓝鸟小飞机
+
+  风险变体 (默认剔除, 需要时 --include-risky 放行):
+    'gmn'  ← Google Gemini Advanced 双子座 2TB  [短英文/数字: 无边界时易命中单词/型号子串]
+    'DS'  ← DeepSeek 满血 671B 离线私有化部署  [短英文/数字: 无边界时易命中单词/型号子串]
+    'MJ'  ← Midjourney 绘图大模型会员与车队  [短英文/数字: 无边界时易命中单词/型号子串]
+    '传家宝'  ← 传家宝 (标价脱离市场行情的自嗨卖家)  [通用日常词: 单独出现大概率是字面义]
+    'dkb'  ← 多卡宝 / 短信猫池 / 批量插卡排插 (短信中继器 / 物联卡卡槽 / 挂机充电设备)  [短英文/数字: 无边界时易命中单词/型号子串]
+    'gg'  ← 境外实体电话卡 (英国 Giffgaff / 美国 Ultra Mobile PayGo / 新西兰 Skinny / 香港 CMLink)  [短英文/数字: 无边界时易命中单词/型号子串]
+    'kyc'  ← 海外账户 KYC 身份认证与人脸活体辅助 (Singpass / 交易所 / 海外券商 IBKR / AI 开发者实名)  [短英文/数字: 无边界时易命中单词/型号子串]
+    'KYC'  ← 海外账户 KYC 身份认证与人脸活体辅助 (Singpass / 交易所 / 海外券商 IBKR / AI 开发者实名)  [短英文/数字: 无边界时易命中单词/型号子串]
+    'edu'  ← 高校教育邮箱 / 学生身份认证 (edu 邮箱 / GitHub 学生包 / JetBrains / 苹果教育优惠)  [短英文/数字: 无边界时易命中单词/型号子串]
+    'op'  ← 软路由小主机 / OpenWrt 科学网络设备 (R66S / J4125 / 旁路由出国留学盒子)  [短英文/数字: 无边界时易命中单词/型号子串]
+
+  给已有词条新增的变体 (样例):
+    Claude 官方会员订阅与代阅 (Pro / Team / API) (community) += cld学习位
+    Claude 3.5 Sonnet 独享 (community) += 克牢弟3.5诚心出、克牢弟3.5带教程、克牢弟3.5正品、克牢弟3.5学习位、克牢弟3.5稳定版、克牢弟3.5测试号
+    Claude 3.7 混合推理深度思考 (community) += 克牢弟3.7现货、克牢弟3.7正品、克牢弟3.7一手、克牢弟3.7全新、克牢弟3.7测试号、克牢弟3.7可刀
+    Claude Pro 合租车队车位 (community) += cld合租秒发、cld合租包激活、cld合租可刀、cld合租自用、cld合租正品、cld合租一手
+    Claude 官方 API 开发者额度与中转 Key (community) += 克牢弟中转现货、克牢弟中转秒发、克牢弟中转稳定版、克牢弟中转测试号、克牢弟中转学习位、克牢弟中转急出
+    Claude 原生干净邮箱独立号 (community) += Proton克牢弟包激活、Proton克牢弟原装、Proton克牢弟学习位、首登包活克牢弟、Proton克牢弟包邮到家、Proton克牢弟诚心出
+    Claude 封号解封申诉模板 (community) += cld解封测试号、cld解封诚心出、cld解封正品、cld解封带教程、cld解封包邮到家、cld解封自用
+    ChatGPT Plus 4.0 独享会员 (community) += 绿标学习位、绿标一手、绿标稳定版、绿标自用、绿标带教程、绿标诚心出
+    ChatGPT Team 团队合租车队 (community) += 4.0车队急出、4.0车队一手、4.0车队全新、4.0车队现货、4.0车队正品、4.0车队包邮
+    ChatGPT 4o 语音高级模式体验 (community) += 4o语音包激活、4o语音现货、4o语音包邮到家、4o语音自用、4o语音测试号、4o语音可刀
+    OpenAI 官方 API Key 充值代付 (community) += OAI充值自用、5刀测试号、OAI充值急出、OAI充值稳定版、OAI充值测试号、OAI充值秒发
+    Google Gemini Advanced 双子座 2TB (community) += 哈基米现货、哈基米可刀、哈基米一手、哈基米带教程、哈基米学习位、哈基米诚心出
+
+  全新概念 (样例, --apply 后进入「社区补充」分类待细分):
+    多卡宝 / 短信猫池 / 批量插卡排插 (短信中继器 / 物联卡卡槽 / 挂机充电设备)  [digital-phone/killed/danger]  →  插座、插线板、插排、二手插座、多孔插座、公牛插座
+    震楼器 / 楼上反击马达 (天花板低频共振喇叭 / 邻里和睦神器)  [general-slang/killed/danger]  →  震楼、震楼qi、震lou'qi、zhen'lou'qi、震lo、震ou
+    MUSE AI 数字人 / 照片说话嘴型同步整合包 (MuseTalk / MusePose / 开源镜像)  [ai-services/active/safe]  →  muse、mu'se、mu de、m s、m su e、照片开口说话
+    境外实体电话卡 (英国 Giffgaff / 美国 Ultra Mobile PayGo / 新西兰 Skinny / 香港 CMLink)  [virtual-resources/killed/danger]  →  giff、giffgadd、cmlink、美国手机卡、新西兰卡、GG白卡
+    海外账户 KYC 身份认证与人脸活体辅助 (Singpass / 交易所 / 海外券商 IBKR / AI 开发者实名)  [virtual-resources/killed/danger]  →  claude kyc、singpass、活体识别、大象银行、ibkr、海外过脸辅助
+    高校教育邮箱 / 学生身份认证 (edu 邮箱 / GitHub 学生包 / JetBrains / 苹果教育优惠)  [academic-services/watching/warning]  →  教育邮箱、学生账号、学生zhang hao、教育you x、xue sh、学籍证明材料指导
+    隐秘论坛邀请码与积分代充 (1024 / 私密 PT 站 / 虚拟硬币兑换)  [virtual-resources/killed/danger]  →  1024、硬币、草榴邀请码、1024金币、1024邀请码、论坛铜板
+    大模型提示词越狱与无审查破甲 (AI 破甲 / 解锁安全限制 / DAN 模式 Prompt)  [ai-services/watching/warning]  →  破甲、唉破、ai 破、解开安全锁、解除回答限制、深度模式解锁
+    软路由小主机 / OpenWrt 科学网络设备 (R66S / J4125 / 旁路由出国留学盒子)  [pc-hardware/killed/danger]  →  翻墙路由器、加速器、科学上网设备、翻墙软路由、跨境电商网络神器、外贸加速硬路由
+    面具 Magisk ROOT 与改机防风控工具 (面具模块 / 隐藏Root / 抹机神器 / 虚拟定位)  [digital-phone/watching/warning]  →  面具、刷机、刷机包、虚拟机多开、港版、港版苹果
+    giffgaff 英国免实名电话卡与海外接码 (实体SIM / eSIM)  [network-tools/active/warning]  →  giffgaff实体卡、giffgaff明信片
+    Tello 美国原生免实名电话卡与接码 (美区实体卡 / eSIM)  [network-tools/active/warning]  →  tello现卡、t家蓝色小卡片
+    Telegram 纸飞机成品号与海外接码注册 (TG 直登号 / +888 靓号)  [social-traffic/killed/danger]  →  TG学习号、电报账号、纸飞机协议号、纸飞机解封、灰机成品号
+    Grok 3 / xAI 马斯克大模型会员与 X Premium 订阅  [ai-services/active/warning]  →  xAI超级车位、马斯克大模型、马斯克生图AI
+    多邻国 Duolingo Super / Max 钻石家庭会员拼车  [digital-assets/active/safe]  →  绿鸟车位、多邻国合租
+    ... 其余 10 个见 staged.json
+
+=====================================================
+✅ 已写入 data/dictionary.source.json
+   下一步: git diff 复核 → 运行 bun run tools/audit-dict.ts → (发布则 bump package.json 的 version)
