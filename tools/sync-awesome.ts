@@ -144,8 +144,9 @@ async function fetchDataset(): Promise<{ entries: AwesomeEntry[]; stats?: unknow
     headers: { accept: "application/json", "user-agent": "xianyu-slang-helper-sync" },
   });
   if (!resp.ok) throw new Error(`抓取失败 HTTP ${resp.status} @ ${SOURCE_URL}`);
-  // 外部应答不信任其形状: 先收敛为 unknown, 确认顶层是对象且 entries 是数组才读取, 否则 fail-fast.
+  // 外部应答不信任其形状: 先收敛为 unknown, 确认顶层是对象且 entries 是数组 (或顶层直接是条目数组) 才读取, 否则 fail-fast.
   const body: unknown = await resp.json();
+  if (Array.isArray(body)) return { entries: body as AwesomeEntry[] };
   if (!isJsonObject(body) || !Array.isArray(body.entries)) throw new Error("数据格式异常: 缺少 entries 数组");
   return { entries: body.entries, stats: body.stats };
 }
