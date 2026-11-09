@@ -41,7 +41,6 @@ On every other website, the extension does nothing.
 | Permission | Purpose |
 |------------|---------|
 | `storage` | Save your preferences and custom dictionary locally |
-| `activeTab` | Read the currently focused tab to inject slang highlighting on Xianyu pages |
 | Host permissions for Xianyu domains | Inject the slang-highlight content script on those pages only |
 
 ## Changes to this policy

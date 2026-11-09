@@ -75,10 +75,9 @@ The only stored items are:
 | Permission | Justification |
 |------------|---------------|
 | `storage` | Persist `decodeEnabled` and user's custom dictionary locally |
-| `activeTab` | Allow popup to read currently-focused tab when applying setting changes |
 | Host: `*.goofish.com`, `*.xianyu.com`, `2.taobao.com` | The slang dictionary is exclusively useful on Xianyu. Extension is inert on any other site. |
 
-No `<all_urls>`. No remote-host permissions. No `webRequest`, `tabs`, `cookies`, `history`.
+No `<all_urls>`. No remote-host permissions. No `webRequest`, `tabs`, `activeTab`, `cookies`, `history`.
 
 ## Source code
 

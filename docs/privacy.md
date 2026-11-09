@@ -59,10 +59,9 @@ permalink: /privacy/
 | 权限 | 用途 |
 |---|---|
 | `storage` | 保存你的偏好和自定义词典到本地 |
-| `activeTab` | 让 popup 能读取当前活跃标签页，应用设置更改 |
 | 三个闲鱼域名的 host permission | 仅在闲鱼页面注入暗语高亮的内容脚本 |
 
-**不申请** `<all_urls>` / `webRequest` / `tabs` / `cookies` / `history` 等任何敏感权限。
+**不申请** `<all_urls>` / `webRequest` / `tabs` / `activeTab` / `cookies` / `history` 等任何敏感权限。
 
 ## 变更说明
 

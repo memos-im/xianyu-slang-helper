@@ -17,7 +17,7 @@ export default defineConfig({
     name: "闲鱼词典",
     description: "在闲鱼搜索时自动建议暗语；浏览时自动解读商品标题/描述中的暗语；词典分类整理 + 加密打包",
     version: pkg.version,
-    permissions: ["storage", "activeTab"],
+    permissions: ["storage"],
     host_permissions: DICT_MATCHES,
     action: { default_title: "闲鱼词典" },
     icons: {

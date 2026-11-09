@@ -139,11 +139,6 @@ A single-purpose tool: helps users navigate the Xianyu (Goofish) second-hand mar
 Used to persist user preferences (e.g., whether in-page slang highlighting is enabled) and the user's optional custom dictionary entries. All data remains local in chrome.storage.local; no external transmission.
 ```
 
-### `activeTab`
-```
-Used by the popup interface to read the currently focused tab so it can apply settings (e.g., re-scan the page after dictionary changes). No background data collection.
-```
-
 ### Host permission: `*://*.goofish.com/*`, `*://*.xianyu.com/*`, `*://2.taobao.com/*`
 ```
 The extension only injects its slang-detection content script on the official Xianyu (Goofish) second-hand marketplace domains. These are the only sites where the coded slang dictionary is relevant. The extension performs zero actions on any other domain.
